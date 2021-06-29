@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "TextureManager.h"
 
 SDL_Texture* playerTex;
 SDL_Rect* srcR, destR;
@@ -7,12 +8,16 @@ int WIN_WIDTH, WIN_HEIGHT;
 
 Game::Game(const char* title, int xpos, int ypos, int width, int height, bool fullscreen)
 {
+	//Default values
 	this->isRunning = false;
 	this->window = NULL;
 	this->renderer = NULL;
+
+	//Initializing the window
 	this->init(title, xpos, ypos, width, height, fullscreen);
 	this->cnt = 0;
 
+	//saving variables as global for later use
 	WIN_WIDTH = width;
 	WIN_HEIGHT = height;
 }
@@ -53,10 +58,8 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 
 		//after the init is succesful continue initializing things here
 
-		//Loading the main player texture
-		SDL_Surface* tmpSurface = loadSurface("assets/images_png/mario.png");
-		playerTex = SDL_CreateTextureFromSurface(renderer, tmpSurface);
-		SDL_FreeSurface(tmpSurface);
+		//Loading the main player texture		
+		playerTex = TextureManager::LoadTexture("assets/images_png/mario.png", renderer);		
 	}
 	else {
 		this->isRunning = false;
@@ -91,7 +94,8 @@ void Game::update()
 	destR.y = WIN_HEIGHT - destR.h;
 	destR.x = this->cnt;
 
-	this->cnt+=0.1;
+	//update speed here
+	this->cnt+=1;
 }
 
 void Game::render()
