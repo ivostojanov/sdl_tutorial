@@ -1,13 +1,15 @@
 #include "Game.h"
 #include "TextureManager.h"
 #include "GameObject.h"
+#include <list>
 
-int WIN_WIDTH, WIN_HEIGHT;
+const int WIN_WIDTH=800, WIN_HEIGHT=600;
 
 GameObject* player;
 GameObject* luigiplayer;
+std::list<GameObject*> ground;
 
-Game::Game(const char* title, int xpos, int ypos, int width, int height, bool fullscreen)
+Game::Game(const char* title, int xpos, int ypos, bool fullscreen)
 {
 	//Default values
 	this->isRunning = false;
@@ -15,16 +17,13 @@ Game::Game(const char* title, int xpos, int ypos, int width, int height, bool fu
 	this->renderer = NULL;
 
 	//Initializing the window
-	this->init(title, xpos, ypos, width, height, fullscreen);
-	this->cnt = 0;
-
-	//saving variables as global for later use
-	WIN_WIDTH = width;
-	WIN_HEIGHT = height;
+	this->init(title, xpos, ypos, WIN_WIDTH, WIN_HEIGHT, fullscreen);
+	this->cnt = 0;	
 }
 
 Game::~Game()
 {
+
 }
 
 void Game::init(const char* title, int xpos, int ypos, int width, int height, bool fullscreen)
@@ -60,8 +59,18 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		//after the init is succesful continue initializing things here
 
 		//Instantiate the player gameobject	
-		player = new GameObject("assets/images_png/mario.png", this->renderer, 0, 0, 24, 32);
-		luigiplayer = new GameObject("assets/images_png/luigi.png", this->renderer, 30, 0, 24, 32);
+		player = new GameObject("assets/images_png/mario.png", this->renderer, 32, WIN_HEIGHT-(32*3), 24, 32);
+		luigiplayer = new GameObject("assets/images_png/luigi.png", this->renderer, 96, WIN_HEIGHT - (32 * 3), 24, 32);
+
+		for (int i = 0; i < 50; i++) {
+			GameObject* temp;
+
+			temp = new GameObject("assets/images/gnd_red_1.bmp", this->renderer, (i*32), WIN_HEIGHT - 32, 32, 32);
+			ground.push_back(temp);
+			temp = new GameObject("assets/images/gnd_red_1.bmp", this->renderer, (i*32), WIN_HEIGHT - 64, 32, 32);
+			ground.push_back(temp);
+		}
+
 	}
 	else {
 		this->isRunning = false;
@@ -93,6 +102,11 @@ void Game::update()
 	//update positions here	
 	player->Update(); //updating the player values
 	luigiplayer->Update();
+	
+	for(GameObject* tile : ground)
+	{
+		tile->Update();
+	}
 }
 
 void Game::render()
@@ -102,6 +116,11 @@ void Game::render()
 	//Rendering happens here
 	player->Render();//rendering the player
 	luigiplayer->Render();
+
+	for (GameObject* tile : ground)
+	{
+		tile->Render();
+	}
 
 	SDL_RenderPresent(this->renderer);
 }

@@ -1,7 +1,7 @@
 #include "GameObject.h"
 #include "TextureManager.h"
 
-GameObject::GameObject(const char* texturesheet, SDL_Renderer* renderer, int xpos, int ypos, int spriteWidth, int spriteHeight) {
+GameObject::GameObject(const char* texturesheet, SDL_Renderer* renderer, float xpos, float ypos, int spriteWidth, int spriteHeight) {
 	this->renderer = renderer;
 	this->objTexture = TextureManager::LoadTexture(texturesheet, this->renderer);
 
@@ -14,9 +14,7 @@ GameObject::GameObject(const char* texturesheet, SDL_Renderer* renderer, int xpo
 	this->ypos = ypos;
 }
 
-void GameObject::Update() {
-	this->xpos++;
-	this->ypos++;
+void GameObject::Update() {	
 
 	//source values
 	this->srcRect.h = spriteHeight;

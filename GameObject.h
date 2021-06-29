@@ -3,13 +3,13 @@
 
 class GameObject {
 public:
-	GameObject(const char* textureSheet, SDL_Renderer* renderer, int xpos, int ypos, int spriteWidth, int spriteHeight);
+	GameObject(const char* textureSheet, SDL_Renderer* renderer, float xpos, float ypos, int spriteWidth, int spriteHeight);
 	~GameObject();
 	void Update();
 	void Render();
 private:
-	int xpos;
-	int ypos;
+	float xpos;
+	float ypos;
 	int spriteWidth;
 	int spriteHeight;
 

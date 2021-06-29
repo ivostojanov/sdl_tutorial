@@ -9,7 +9,7 @@ const int FPS = 60;
 const int frameDelay = 1000 / FPS;
 
 int main(int args, char* argv[]) {	
-	game = new Game("Super Mario Bros - Level 1", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, false);	
+	game = new Game("Super Mario Bros - Level 1", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, false);	
 
 	Uint32 frameStart;
 	int deltaTime;
