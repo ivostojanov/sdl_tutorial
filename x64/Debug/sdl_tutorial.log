@@ -1,5 +1,2 @@
-﻿  Game.cpp
-C:\Users\Ivan\Documents\OpenGL Workspace\sdl_tutorial\Game.cpp(92,16): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
-  main.cpp
-  Generating Code...
+﻿  main.cpp
   sdl_tutorial.vcxproj -> C:\Users\Ivan\Documents\OpenGL Workspace\sdl_tutorial\x64\Debug\sdl_tutorial.exe
