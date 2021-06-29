@@ -1,10 +1,11 @@
 #include "Game.h"
 #include "TextureManager.h"
-
-SDL_Texture* playerTex;
-SDL_Rect* srcR, destR;
+#include "GameObject.h"
 
 int WIN_WIDTH, WIN_HEIGHT;
+
+GameObject* player;
+GameObject* luigiplayer;
 
 Game::Game(const char* title, int xpos, int ypos, int width, int height, bool fullscreen)
 {
@@ -58,8 +59,9 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 
 		//after the init is succesful continue initializing things here
 
-		//Loading the main player texture		
-		playerTex = TextureManager::LoadTexture("assets/images_png/mario.png", renderer);		
+		//Instantiate the player gameobject	
+		player = new GameObject("assets/images_png/mario.png", this->renderer, 0, 0, 24, 32);
+		luigiplayer = new GameObject("assets/images_png/luigi.png", this->renderer, 30, 0, 24, 32);
 	}
 	else {
 		this->isRunning = false;
@@ -89,13 +91,8 @@ void Game::handleEvents() {
 void Game::update()
 {
 	//update positions here	
-	destR.w = 24;
-	destR.h = 32;
-	destR.y = WIN_HEIGHT - destR.h;
-	destR.x = this->cnt;
-
-	//update speed here
-	this->cnt+=1;
+	player->Update(); //updating the player values
+	luigiplayer->Update();
 }
 
 void Game::render()
@@ -103,7 +100,8 @@ void Game::render()
 	SDL_RenderClear(this->renderer);
 
 	//Rendering happens here
-	SDL_RenderCopy(this->renderer, playerTex, NULL, &destR);
+	player->Render();//rendering the player
+	luigiplayer->Render();
 
 	SDL_RenderPresent(this->renderer);
 }
