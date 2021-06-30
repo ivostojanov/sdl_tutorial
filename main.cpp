@@ -6,13 +6,13 @@ const int WINDOW_WIDTH = 800;
 const int WINDOW_HEIGHT = 600;
 
 const int FPS = 60;
-const int frameDelay = 1000 / FPS;
+const float frameDelay = 1000.0f / FPS;
 
 int main(int args, char* argv[]) {	
 	game = new Game("Super Mario Bros - Level 1", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, false);	
 
 	Uint32 frameStart;
-	int deltaTime;
+	float deltaTime=0;	
 
 	while (game->running()) {
 		frameStart = SDL_GetTicks();
@@ -21,11 +21,16 @@ int main(int args, char* argv[]) {
 		game->update();
 		game->render();
 		
+		
 		//capping the framerate to 60
-		deltaTime = SDL_GetTicks() - frameStart;
+		deltaTime = (SDL_GetTicks() - frameStart);				
+
+		//removing frame capping
 		if (deltaTime < frameDelay) {
 			SDL_Delay(frameDelay - deltaTime);
-		}
+		}	
+
+		game->setDeltaTime(deltaTime+(frameDelay-deltaTime));
 	}
 	game->clean();	
 	return 0;

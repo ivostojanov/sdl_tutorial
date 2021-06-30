@@ -32,3 +32,42 @@ void GameObject::Update() {
 void GameObject::Render() {
 	SDL_RenderCopy(this->renderer, this->objTexture, &this->srcRect, &this->destRect);
 }
+
+void GameObject::Translate(float x, float y, std::list<SDL_Rect> colliders)
+{
+	this->xpos += x;
+	this->destRect.x = this->xpos;
+	for (SDL_Rect collider:colliders)
+	{
+		if (this->checkCollision(collider)) {
+			this->xpos -= x;
+			this->destRect.x = this->xpos;
+			break;
+		}
+	}
+	
+	this->ypos += y;
+	this->destRect.y = this->ypos;
+	for (SDL_Rect collider : colliders)
+	{
+		if (this->checkCollision(collider)) {
+			this->ypos -= y;
+			this->destRect.y = this->ypos;
+			break;
+		}
+	}
+}
+
+bool GameObject::checkCollision(SDL_Rect otherObject)
+{
+	bool collisionCheck1 = (otherObject.x+otherObject.w)>destRect.x;
+	bool collisionCheck2 = (destRect.x + destRect.w) > otherObject.x;
+	bool collisionCheck3 = (otherObject.y + otherObject.h) > destRect.y;
+	bool collisionCheck4 = (destRect.y + destRect.h) > otherObject.y;
+
+	if (collisionCheck1 && collisionCheck2 && collisionCheck3 && collisionCheck4) {
+		return true;
+	}
+
+	return false;
+}

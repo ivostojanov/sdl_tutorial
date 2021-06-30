@@ -5,7 +5,17 @@
 
 const int WIN_WIDTH=800, WIN_HEIGHT=600;
 
+//Main player variables
 GameObject* player;
+float playerSpeed=5.0f;
+float playerVelocity = 0.15f;
+float playerStartSpeed = 5.0f;
+
+bool playerHasJumped = false;
+float jumpDistance = 0.0f;
+float jumpMaxDistance = 32 * 2;
+float jumpSpeed = 10.0f;
+
 GameObject* luigiplayer;
 std::list<GameObject*> ground;
 
@@ -60,7 +70,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 
 		//Instantiate the player gameobject	
 		player = new GameObject("assets/images_png/mario.png", this->renderer, 32, WIN_HEIGHT-(32*3), 24, 32);
-		luigiplayer = new GameObject("assets/images_png/luigi.png", this->renderer, 96, WIN_HEIGHT - (32 * 3), 24, 32);
+		luigiplayer = new GameObject("assets/images_png/luigi.png", this->renderer, 96, WIN_HEIGHT - (32 * 5), 24, 32);
 
 		for (int i = 0; i < 50; i++) {
 			GameObject* temp;
@@ -89,12 +99,42 @@ void Game::handleEvents() {
 			{
 				case SDLK_ESCAPE:
 					isRunning = false;
-					break;
+					break;				
 				default:
 					break;
 			}
 		}
+
+		if (event.type == SDL_KEYDOWN) {	
+			
+			//Getting all the colliders from the active objects
+			std::list<SDL_Rect> colliders;
+			colliders.push_back(luigiplayer->getCollisionBox());
+			for (GameObject* ground_tile : ground) {
+				colliders.push_back(ground_tile->getCollisionBox());
+			}
+
+			if (event.key.keysym.sym == SDLK_a) {								
+				player->Translate(-1 * playerSpeed, 0, colliders);
+				playerSpeed += playerVelocity;
+
+			}else if(event.key.keysym.sym == SDLK_d) {				
+				player->Translate(1 * playerSpeed, 0, colliders);
+				playerSpeed += playerVelocity;
+			}
+			else if (event.key.keysym.sym == SDLK_SPACE) {
+				playerHasJumped = true;
+			}			
+		}	
+		if (event.type == SDL_KEYUP) {
+			playerSpeed = playerStartSpeed;
+		}
 	}
+}
+
+void Game::setDeltaTime(float deltaTime)
+{
+	this->deltaTime = deltaTime;
 }
 
 void Game::update()
@@ -107,6 +147,21 @@ void Game::update()
 	{
 		tile->Update();
 	}
+
+	/* FIX THIS JUMP
+	if (playerHasJumped == true) {
+		float jumpValue = -0.01f * this->deltaTime * jumpSpeed;
+		player->Translate(0, jumpValue);		
+		jumpDistance += jumpValue;
+
+		if (jumpDistance*(-1) >= jumpMaxDistance) {			
+			playerHasJumped = false;
+		}		
+	}
+	else if (playerHasJumped == false && jumpDistance >= jumpMaxDistance) {
+		float fallValue = 0.01f * this->deltaTime;
+		player->Translate(0, fallValue);
+	}*/
 }
 
 void Game::render()

@@ -16,6 +16,7 @@ class Game
 		void handleEvents();
 
 		bool running() { return isRunning; };
+		void setDeltaTime(float deltaTime);
 
 	private:	
 		double cnt;
@@ -23,5 +24,6 @@ class Game
 		SDL_Window *window;
 		SDL_Renderer *renderer;
 		SDL_Surface *loadSurface(std::string path);
+		float deltaTime;//in seconds
 };
 

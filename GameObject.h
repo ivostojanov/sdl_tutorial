@@ -1,5 +1,6 @@
 #pragma once
 #include "Game.h"
+#include <list>
 
 class GameObject {
 public:
@@ -7,6 +8,13 @@ public:
 	~GameObject();
 	void Update();
 	void Render();
+	void Translate(float x, float y, std::list<SDL_Rect> colliders);
+	float getX() { return xpos; }
+	float getY() { return ypos; }
+	SDL_Rect getCollisionBox() {
+		return destRect;
+	}
+	bool checkCollision(SDL_Rect otherObject);
 private:
 	float xpos;
 	float ypos;
