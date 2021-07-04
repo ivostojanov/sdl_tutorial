@@ -7,21 +7,30 @@ public:
 	GameObject(const char* textureSheet, SDL_Renderer* renderer, float xpos, float ypos, int spriteWidth, int spriteHeight);
 	~GameObject();
 	void Update();
-	void Render();
-	void Translate(float x, float y, std::list<SDL_Rect> colliders);
+	void Render();	
+	bool Translate(float x, float y, std::list<SDL_Rect> colliders);
 	float getX() { return xpos; }
 	float getY() { return ypos; }
 	SDL_Rect getCollisionBox() {
 		return destRect;
 	}
+	void SetCurrentTexture(SDL_Texture* texture) {
+		this->objTexture = texture;
+	}
 	bool checkCollision(SDL_Rect otherObject);
+	void setFlipX(bool flipValue) {
+		this->flipX = flipValue;
+	}
 private:
 	float xpos;
 	float ypos;
 	int spriteWidth;
 	int spriteHeight;
+	
+	//sprite options
+	bool flipX;
 
 	SDL_Texture* objTexture;
 	SDL_Rect srcRect, destRect;
-	SDL_Renderer* renderer;
+	SDL_Renderer* renderer;	
 };

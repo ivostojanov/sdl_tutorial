@@ -24,13 +24,14 @@ int main(int args, char* argv[]) {
 		
 		//capping the framerate to 60
 		deltaTime = (SDL_GetTicks() - frameStart);				
+		//game->setDeltaTime(deltaTime + (frameDelay - deltaTime));
 
 		//removing frame capping
 		if (deltaTime < frameDelay) {
-			SDL_Delay(frameDelay - deltaTime);
+			//there is an issue with SDL_Delay
+			//SDL_Delay(frameDelay - deltaTime);
 		}	
-
-		game->setDeltaTime(deltaTime+(frameDelay-deltaTime));
+		
 	}
 	game->clean();	
 	return 0;

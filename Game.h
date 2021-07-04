@@ -18,6 +18,8 @@ class Game
 		bool running() { return isRunning; };
 		void setDeltaTime(float deltaTime);
 
+		void Animate();
+
 	private:	
 		double cnt;
 		bool isRunning;

@@ -1,6 +1,8 @@
 #include "GameObject.h"
 #include "TextureManager.h"
 
+int frame = 0;
+
 GameObject::GameObject(const char* texturesheet, SDL_Renderer* renderer, float xpos, float ypos, int spriteWidth, int spriteHeight) {
 	this->renderer = renderer;
 	this->objTexture = TextureManager::LoadTexture(texturesheet, this->renderer);
@@ -12,6 +14,8 @@ GameObject::GameObject(const char* texturesheet, SDL_Renderer* renderer, float x
 	// default positions for the gameobject
 	this->xpos = xpos;
 	this->ypos = ypos;
+
+	this->flipX = false;
 }
 
 void GameObject::Update() {	
@@ -29,33 +33,49 @@ void GameObject::Update() {
 	this->destRect.h = this->srcRect.h;//you can scale the gameobject here, height
 }
 
-void GameObject::Render() {
-	SDL_RenderCopy(this->renderer, this->objTexture, &this->srcRect, &this->destRect);
+void GameObject::Render() {	
+	if (!flipX) {
+		SDL_RenderCopy(this->renderer, this->objTexture, &this->srcRect, &this->destRect);
+	}
+	else {
+		SDL_RenderCopyEx(this->renderer, this->objTexture, &this->srcRect, &this->destRect, NULL, NULL, SDL_FLIP_HORIZONTAL);
+	}
 }
 
-void GameObject::Translate(float x, float y, std::list<SDL_Rect> colliders)
+bool GameObject::Translate(float x, float y, std::list<SDL_Rect> colliders)
 {
-	this->xpos += x;
-	this->destRect.x = this->xpos;
-	for (SDL_Rect collider:colliders)
-	{
-		if (this->checkCollision(collider)) {
-			this->xpos -= x;
-			this->destRect.x = this->xpos;
-			break;
+	if (x != 0) {
+		this->xpos += x;
+		this->destRect.x = this->xpos;
+
+		auto it = colliders.begin();
+		for (; it!=colliders.end(); ++it) {
+
+			if (this->checkCollision(*it)) {
+				this->xpos -= x;
+				this->destRect.x = this->xpos;
+				break;
+			}
 		}
+		
 	}
 	
-	this->ypos += y;
-	this->destRect.y = this->ypos;
-	for (SDL_Rect collider : colliders)
-	{
-		if (this->checkCollision(collider)) {
-			this->ypos -= y;
-			this->destRect.y = this->ypos;
-			break;
-		}
-	}
+	if (y != 0) {
+		this->ypos += y;
+		this->destRect.y = this->ypos;
+
+		auto it = colliders.begin();
+		for (; it != colliders.end(); ++it) {
+			if (this->checkCollision(*it)) {
+				this->ypos -= y;
+				this->destRect.y = this->ypos;
+				return true;
+				break;
+			}
+		}		
+	}	
+
+	return false;
 }
 
 bool GameObject::checkCollision(SDL_Rect otherObject)
