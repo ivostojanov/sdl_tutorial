@@ -25,15 +25,17 @@ float playerFallSpeed = 3.0f;
 
 // All these variables are related to jumping
 bool playerHasJumped = false;
-float jumpSpeed = 1.0f;
+float jumpSpeed = 2.5f;
 float jumpStartSpeed = jumpSpeed;
 float jumpVelocity = 0.10f;
 
 float jumpDistanceTraveled = 0.0f;
-float jumpMaxDistance = 100.0f;
+float jumpMaxDistance = 150.0f;
 
 GameObject* luigiplayer;
 std::list<GameObject*> ground;
+std::list<GameObject*> magicBoxes;
+std::list<GameObject*> brickedWalls;
 
 //all the colliders in the level
 std::list<SDL_Rect> colliders;
@@ -42,6 +44,11 @@ std::list<SDL_Rect> colliders;
 std::list<SDL_Texture*> playerMoveAnimation;
 SDL_Texture* marioIdleSprite;
 SDL_Texture* marioJumpSprite;
+
+//magic box animation
+std::list<SDL_Texture*> magicBoxIdleAnimation;
+int magicBoxAnimationFrameCounter;
+//SDL_Texture* blockUsedAnimation;
 
 //frame counter
 int frames = 0;
@@ -104,15 +111,33 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		playerMoveAnimation.push_back(TextureManager::LoadTexture("assets/images_png/mario_move1.png", this->renderer));
 		playerMoveAnimation.push_back(TextureManager::LoadTexture("assets/images_png/mario_move2.png", this->renderer));
 
+		magicBoxIdleAnimation.push_back(TextureManager::LoadTexture("assets/images_png/blockq_0.bmp", this->renderer));
+		magicBoxIdleAnimation.push_back(TextureManager::LoadTexture("assets/images_png/blockq_1.bmp", this->renderer));
+		magicBoxIdleAnimation.push_back(TextureManager::LoadTexture("assets/images_png/blockq_2.bmp", this->renderer));
+
 		luigiplayer = new GameObject("assets/images_png/luigi.png", this->renderer, 96, WIN_HEIGHT - (32 * 5), 24, 32);
 
-		for (int i = 0; i < 20; i++) {
+		//the ground
+		for (int i = 0; i < 40; i++) {
 			GameObject* temp;
 			temp = new GameObject("assets/images/gnd_red_1.bmp", this->renderer, (i*32), WIN_HEIGHT - 32, 32, 32);
 			ground.push_back(temp);
 			temp = new GameObject("assets/images/gnd_red_1.bmp", this->renderer, (i*32), WIN_HEIGHT - 64, 32, 32);
 			ground.push_back(temp);
 		}
+
+		//starting obstacles
+		magicBoxes.push_back(new GameObject("assets/images/blockq_0.bmp", this->renderer, 32 * 13, WIN_HEIGHT- 6 * 32, 32, 32));
+
+		brickedWalls.push_back(new GameObject("assets/images/brickred.bmp", this->renderer, 32*17, WIN_HEIGHT - 6 * 32, 32, 32));
+		magicBoxes.push_back(new GameObject("assets/images/blockq_0.bmp", this->renderer, 32 * 18, WIN_HEIGHT - 6 * 32, 32, 32));
+		brickedWalls.push_back(new GameObject("assets/images/brickred.bmp", this->renderer, 32 * 19, WIN_HEIGHT - 6 * 32, 32, 32));
+		magicBoxes.push_back(new GameObject("assets/images/blockq_0.bmp", this->renderer, 32 * 20, WIN_HEIGHT - 6 * 32, 32, 32));
+		brickedWalls.push_back(new GameObject("assets/images/brickred.bmp", this->renderer, 32 * 21, WIN_HEIGHT - 6 * 32, 32, 32));
+
+		magicBoxes.push_back(new GameObject("assets/images/blockq_0.bmp", this->renderer, 32 * 19, WIN_HEIGHT - (6+4) * 32, 32, 32));
+		//Scene decor
+
 
 	}
 	else {
@@ -132,6 +157,15 @@ void Game::handleEvents() {
 			//Getting all the colliders from the active objects FIX THIS
 			colliders = std::list<SDL_Rect>();
 			colliders.push_back(luigiplayer->getCollisionBox());
+			
+			for (GameObject* magicBox : magicBoxes) {
+				colliders.push_back(magicBox->getCollisionBox());
+			}
+
+			for (GameObject* brickedWall : brickedWalls) {
+				colliders.push_back(brickedWall->getCollisionBox());
+			}
+
 			for (GameObject* ground_tile : ground) {
 				colliders.push_back(ground_tile->getCollisionBox());
 			}
@@ -146,6 +180,7 @@ void Game::handleEvents() {
 			else if (event.key.keysym.sym == SDLK_SPACE && !playerHasJumped && grounded) {
 				playerHasJumped = true;
 				grounded = false;
+				jumpDistanceTraveled = 0;
 			}
 			else if (event.key.keysym.sym == SDLK_ESCAPE) {
 				isRunning = false;
@@ -205,6 +240,26 @@ void Game::Animate() {
 		player->SetCurrentTexture(marioJumpSprite);
 	}
 	
+	for (GameObject* magicBox : magicBoxes) {
+		int animFrame = 2;
+		if (magicBoxAnimationFrameCounter <= 60) {
+			animFrame = 2;
+		}
+		else if (magicBoxAnimationFrameCounter <= 120) {
+			animFrame = 1;
+		}
+		else if (magicBoxAnimationFrameCounter <= 180) {
+			animFrame = 0;
+		}
+		else {
+			magicBoxAnimationFrameCounter = 0;
+		}
+
+		auto it = magicBoxIdleAnimation.begin();
+		std::advance(it, animFrame);
+		magicBox->SetCurrentTexture(*it);
+		magicBoxAnimationFrameCounter++;
+	}
 
 	frames++;
 }
@@ -214,6 +269,14 @@ void Game::update()
 	//update positions here	
 	player->Update(); //updating the player values
 	luigiplayer->Update();
+
+	for (GameObject* magicBox : magicBoxes) {
+		magicBox->Update();
+	}
+	
+	for (GameObject* brickedWall : brickedWalls) {
+		brickedWall->Update();
+	}
 	
 	for(GameObject* tile : ground)
 	{
@@ -254,10 +317,20 @@ void Game::update()
 void Game::render()
 {	
 	SDL_RenderClear(this->renderer);
+	SDL_SetRenderDrawColor(this->renderer, 92.0, 148.0, 252.0, 0);
+	
 
 	//Rendering happens here
 	player->Render();//rendering the player
 	luigiplayer->Render();
+
+	for (GameObject* magicBox : magicBoxes) {
+		magicBox->Render();
+	}
+
+	for (GameObject* brickedWalls : brickedWalls) {
+		brickedWalls->Render();
+	}
 
 	for (GameObject* tile : ground)
 	{
