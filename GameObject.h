@@ -26,6 +26,8 @@ private:
 	float ypos;
 	int spriteWidth;
 	int spriteHeight;
+	//got hit by the player
+	int hit = 0;
 	
 	//sprite options
 	bool flipX;
