@@ -4,6 +4,7 @@
 #include <list>
 
 const int WIN_WIDTH=640, WIN_HEIGHT=480;
+const int LEVEL_WIDTH = 640 * 4, LEVEL_HEIGHT = 480;
 
 //Main player variables
 GameObject* player;
@@ -51,8 +52,18 @@ int magicBoxAnimationFrameCounter = 0;
 int moveAnimationFrameCounter = 0;
 //SDL_Texture* blockUsedAnimation;
 
+//Gameobject tags
+const std::string PLAYER_TAG = "player";
+const std::string BREAKABLE_BRICK_TAG = "breakablebrick";
+const std::string MAGIC_BOX_TAG = "magicbox";
+const std::string FLOOR_TAG = "floor";
+const std::string DECOR_TAG = "decor";
+
 //frame counter
 int frames = 0;
+
+//Camera
+SDL_Rect camera = { 0 ,0, WIN_WIDTH, WIN_HEIGHT};
 
 Game::Game(const char* title, int xpos, int ypos, bool fullscreen)
 {
@@ -107,7 +118,8 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		//after the init is succesful continue initializing things here
 
 		//Instantiate the player gameobject	
-		player = new GameObject("assets/images_custom/ico.bmp", this->renderer, 32*2, WIN_HEIGHT-(32*3), 24, 32);
+		player = new GameObject(PLAYER_TAG, "assets/images_custom/mario/mario.bmp", this->renderer, 32 * 2, WIN_HEIGHT - (32 * 3), 24, 32);
+
 		//loading the move right animation
 		marioIdleSprite = TextureManager::LoadTexture("assets/images_custom/mario/mario.bmp", this->renderer);
 		marioJumpSprite = TextureManager::LoadTexture("assets/images_custom/mario/mario_jump.bmp", this->renderer);
@@ -122,75 +134,92 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		//the ground
 		for (int i = 0; i < 40; i++) {
 			GameObject* temp;
-			temp = new GameObject("assets/images_custom/blocks/gnd_red_1.bmp", this->renderer, (i*32), WIN_HEIGHT - 32, 32, 32);
+			temp = new GameObject(FLOOR_TAG,"assets/images_custom/blocks/gnd_red_1.bmp", this->renderer, (i*32), WIN_HEIGHT - 32, 32, 32);
 			ground.push_back(temp);
-			temp = new GameObject("assets/images_custom/blocks/gnd_red_1.bmp", this->renderer, (i*32), WIN_HEIGHT - 64, 32, 32);
+			temp = new GameObject(FLOOR_TAG,"assets/images_custom/blocks/gnd_red_1.bmp", this->renderer, (i*32), WIN_HEIGHT - 64, 32, 32);
 			ground.push_back(temp);
 		}
 
 		//starting obstacles
-		magicBoxes.push_back(new GameObject("assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 13, WIN_HEIGHT- 6 * 32, 32, 32));
+		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG,"assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 13, WIN_HEIGHT- 6 * 32, 32, 32));
 
-		brickedWalls.push_back(new GameObject("assets/images_custom/blocks/brickred.bmp", this->renderer, 32*17, WIN_HEIGHT - 6 * 32, 32, 32));
-		magicBoxes.push_back(new GameObject("assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 18, WIN_HEIGHT - 6 * 32, 32, 32));
-		brickedWalls.push_back(new GameObject("assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 19, WIN_HEIGHT - 6 * 32, 32, 32));
-		magicBoxes.push_back(new GameObject("assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 20, WIN_HEIGHT - 6 * 32, 32, 32));
-		brickedWalls.push_back(new GameObject("assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 21, WIN_HEIGHT - 6 * 32, 32, 32));
+		brickedWalls.push_back(new GameObject(BREAKABLE_BRICK_TAG,"assets/images_custom/blocks/brickred.bmp", this->renderer, 32*17, WIN_HEIGHT - 6 * 32, 32, 32));
+		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 18, WIN_HEIGHT - 6 * 32, 32, 32));
+		brickedWalls.push_back(new GameObject(BREAKABLE_BRICK_TAG, "assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 19, WIN_HEIGHT - 6 * 32, 32, 32));
+		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 20, WIN_HEIGHT - 6 * 32, 32, 32));
+		brickedWalls.push_back(new GameObject(BREAKABLE_BRICK_TAG, "assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 21, WIN_HEIGHT - 6 * 32, 32, 32));
 
-		magicBoxes.push_back(new GameObject("assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 19, WIN_HEIGHT - (6+4) * 32, 32, 32));
+		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 19, WIN_HEIGHT - (6+4) * 32, 32, 32));
 		
 		//--------------Scene decor--------------
 		//First bush
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_left.bmp", this->renderer, 32 * 0, WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_left.bmp", this->renderer, 32 * 1, WIN_HEIGHT - (32 * 4), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_top.bmp", this->renderer, 32 * 2, WIN_HEIGHT - (32 * 5), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_center_0.bmp", this->renderer, 32*1, WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_center_1.bmp", this->renderer, 32*2, WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_center_0.bmp", this->renderer, 32*3, WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_right.bmp", this->renderer, 32 * 3, WIN_HEIGHT - (32 * 4), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_right.bmp", this->renderer, 32 * 4, WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_center_0.bmp", this->renderer, 32 * 2, WIN_HEIGHT - (32 * 4), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG,"assets/images_custom/decor/bush_left.bmp", this->renderer, 32 * 0, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG,"assets/images_custom/decor/bush_left.bmp", this->renderer, 32 * 1, WIN_HEIGHT - (32 * 4), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_top.bmp", this->renderer, 32 * 2, WIN_HEIGHT - (32 * 5), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_center_0.bmp", this->renderer, 32*1, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_center_1.bmp", this->renderer, 32*2, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_center_0.bmp", this->renderer, 32*3, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_right.bmp", this->renderer, 32 * 3, WIN_HEIGHT - (32 * 4), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_right.bmp", this->renderer, 32 * 4, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_center_0.bmp", this->renderer, 32 * 2, WIN_HEIGHT - (32 * 4), 32, 32));
 
 		//second grass
 		int decor_bush = 8;
-		decor.push_back(new GameObject("assets/images_custom/decor/grass_left.bmp", this->renderer, 32 * (decor_bush++), WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/grass_center.bmp", this->renderer, 32 * (decor_bush++), WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/grass_center.bmp", this->renderer, 32 * (decor_bush++), WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/grass_center.bmp", this->renderer, 32 * (decor_bush++), WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/grass_right.bmp", this->renderer, 32 * (decor_bush++), WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/grass_left.bmp", this->renderer, 32 * (decor_bush++), WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/grass_center.bmp", this->renderer, 32 * (decor_bush++), WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/grass_center.bmp", this->renderer, 32 * (decor_bush++), WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/grass_center.bmp", this->renderer, 32 * (decor_bush++), WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/grass_right.bmp", this->renderer, 32 * (decor_bush++), WIN_HEIGHT - (32 * 3), 32, 32));
 
 		//third bush		
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_left.bmp", this->renderer, 32 * 13, WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_center_0.bmp", this->renderer, 32 * 14, WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_top.bmp", this->renderer, 32 * 14, WIN_HEIGHT - (32 * 4), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/bush_right.bmp", this->renderer, 32 * 15, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_left.bmp", this->renderer, 32 * 13, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_center_0.bmp", this->renderer, 32 * 14, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_top.bmp", this->renderer, 32 * 14, WIN_HEIGHT - (32 * 4), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/bush_right.bmp", this->renderer, 32 * 15, WIN_HEIGHT - (32 * 3), 32, 32));
 
 		//fourth grass
-		decor.push_back(new GameObject("assets/images_custom/decor/grass_left.bmp", this->renderer, 32 * 19, WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/grass_center.bmp", this->renderer, 32 * 20, WIN_HEIGHT - (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/grass_right.bmp", this->renderer, 32 * 21, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/grass_left.bmp", this->renderer, 32 * 19, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/grass_center.bmp", this->renderer, 32 * 20, WIN_HEIGHT - (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/grass_right.bmp", this->renderer, 32 * 21, WIN_HEIGHT - (32 * 3), 32, 32));
 
 		//clouds
 		int cloud_position_x = 6;
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_left_bot.bmp", this->renderer, 32 * (cloud_position_x-1), (32 * 4), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_center_bot.bmp", this->renderer, 32 * cloud_position_x, (32 * 4), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_right_bot.bmp", this->renderer, 32 * (cloud_position_x+1), (32 * 4), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_center_top.bmp", this->renderer, 32 * cloud_position_x, (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_right_top.bmp", this->renderer, 32 * (cloud_position_x+1), (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_left_top.bmp", this->renderer, 32 * (cloud_position_x-1), (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_left_bot.bmp", this->renderer, 32 * (cloud_position_x-1), (32 * 4), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_center_bot.bmp", this->renderer, 32 * cloud_position_x, (32 * 4), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_right_bot.bmp", this->renderer, 32 * (cloud_position_x+1), (32 * 4), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_center_top.bmp", this->renderer, 32 * cloud_position_x, (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_right_top.bmp", this->renderer, 32 * (cloud_position_x+1), (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_left_top.bmp", this->renderer, 32 * (cloud_position_x-1), (32 * 3), 32, 32));
 
 		cloud_position_x = 17;
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_left_bot.bmp", this->renderer, 32 * (cloud_position_x - 1), (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_center_bot.bmp", this->renderer, 32 * cloud_position_x, (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_right_bot.bmp", this->renderer, 32 * (cloud_position_x + 1), (32 * 3), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_center_top.bmp", this->renderer, 32 * cloud_position_x, (32 * 2), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_right_top.bmp", this->renderer, 32 * (cloud_position_x + 1), (32 * 2), 32, 32));
-		decor.push_back(new GameObject("assets/images_custom/decor/cloud_left_top.bmp", this->renderer, 32 * (cloud_position_x - 1), (32 * 2), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_left_bot.bmp", this->renderer, 32 * (cloud_position_x - 1), (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_center_bot.bmp", this->renderer, 32 * cloud_position_x, (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_right_bot.bmp", this->renderer, 32 * (cloud_position_x + 1), (32 * 3), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_center_top.bmp", this->renderer, 32 * cloud_position_x, (32 * 2), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_right_top.bmp", this->renderer, 32 * (cloud_position_x + 1), (32 * 2), 32, 32));
+		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_left_top.bmp", this->renderer, 32 * (cloud_position_x - 1), (32 * 2), 32, 32));
 	}
 	else {
 		this->isRunning = false;
 	}
 	
+}
+
+void retrieveColliders() {
+	//Getting all the colliders from the active objects
+	colliders = std::list<SDL_Rect>();
+
+	for (GameObject* magicBox : magicBoxes) {
+		colliders.push_back(magicBox->getCollisionBox());
+	}
+
+	for (GameObject* brickedWall : brickedWalls) {
+		colliders.push_back(brickedWall->getCollisionBox());
+	}
+
+	for (GameObject* ground_tile : ground) {
+		colliders.push_back(ground_tile->getCollisionBox());
+	}
 }
 
 void Game::handleEvents() {
@@ -199,22 +228,7 @@ void Game::handleEvents() {
 		if (event.type == SDL_QUIT) {
 			isRunning = false;
 		}		
-		else if (event.type == SDL_KEYDOWN) {
-
-			//Getting all the colliders from the active objects FIX THIS
-			colliders = std::list<SDL_Rect>();			
-			
-			for (GameObject* magicBox : magicBoxes) {
-				colliders.push_back(magicBox->getCollisionBox());
-			}
-
-			for (GameObject* brickedWall : brickedWalls) {
-				colliders.push_back(brickedWall->getCollisionBox());
-			}
-
-			for (GameObject* ground_tile : ground) {
-				colliders.push_back(ground_tile->getCollisionBox());
-			}
+		else if (event.type == SDL_KEYDOWN) {					
 
 			if (event.key.keysym.sym == SDLK_a) {
 				moveLeftFlag = true;
@@ -338,25 +352,33 @@ void Game::Animate() {
 
 void Game::update()
 {
+	float cameraOffsetX = -camera.x;
 	//updating the positions of the decorations
 	for (GameObject* dec : decor) {
+		dec->setCameraOffset(cameraOffsetX);
 		dec->Update();
 	}
 	//update positions here	
+	player->setCameraOffset(cameraOffsetX);
 	player->Update(); //updating the player values	
 
 	for (GameObject* magicBox : magicBoxes) {
+		magicBox->setCameraOffset(cameraOffsetX);
 		magicBox->Update();
 	}
 	
 	for (GameObject* brickedWall : brickedWalls) {
+		brickedWall->setCameraOffset(cameraOffsetX);
 		brickedWall->Update();
-	}
+	}	
 	
 	for(GameObject* tile : ground)
 	{
+		tile->setCameraOffset(cameraOffsetX);
 		tile->Update();
 	}
+
+	retrieveColliders();    
 	
 	if (colliders.size() != 0 && !playerHasJumped) {
 		grounded = player->Translate(0, (jumpSpeed), colliders);
@@ -387,6 +409,7 @@ void Game::update()
 	}	
 
 	this->Animate();
+	this->setCamera();
 }
 
 void Game::render()
@@ -438,4 +461,22 @@ SDL_Surface* Game::loadSurface(std::string path) {
 	}
 		
 	return loadedSurface;
+}
+
+void Game::setCamera()
+{
+	SDL_Rect playerRect = player->getCollisionBox();
+	//center the camera over mario 
+	//camera.x = (playerRect.x + playerRect.w / 2) - WIN_WIDTH / 2;
+	camera.x = player->getX()-(WIN_WIDTH/2);
+	
+	if (camera.x < 0)
+	{
+		camera.x = 0;
+	}
+	/*
+	if (camera.x > LEVEL_WIDTH - camera.w)
+	{
+		camera.x = LEVEL_WIDTH - camera.w;
+	}*/
 }

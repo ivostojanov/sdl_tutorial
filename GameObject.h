@@ -1,10 +1,11 @@
 #pragma once
 #include "Game.h"
 #include <list>
+#include <string>
 
 class GameObject {
 public:
-	GameObject(const char* textureSheet, SDL_Renderer* renderer, float xpos, float ypos, int spriteWidth, int spriteHeight);
+	GameObject(std::string gameObjectTag,const char* textureSheet, SDL_Renderer* renderer, float xpos, float ypos, int spriteWidth, int spriteHeight);
 	~GameObject();
 	void Update();
 	void Render();	
@@ -20,6 +21,15 @@ public:
 	bool checkCollision(SDL_Rect otherObject);
 	void setFlipX(bool flipValue) {
 		this->flipX = flipValue;
+	}	
+	void setCameraOffset(float x) {
+		cameraXOffset = x;
+	}
+	void incrementHit() {
+		this->hit++;
+	}
+	int getNumberOfHits() {
+		return this->hit;
 	}
 private:
 	float xpos;
@@ -35,4 +45,6 @@ private:
 	SDL_Texture* objTexture;
 	SDL_Rect srcRect, destRect;
 	SDL_Renderer* renderer;	
+	float cameraXOffset=0;
+	std::string gameObjectTag;
 };

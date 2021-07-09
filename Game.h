@@ -19,6 +19,8 @@ class Game
 		void setDeltaTime(float deltaTime);
 
 		void Animate();
+		//set the camera over an object - preferably the player
+		void setCamera();
 
 	private:	
 		double cnt;

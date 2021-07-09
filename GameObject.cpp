@@ -3,7 +3,8 @@
 
 int frame = 0;
 
-GameObject::GameObject(const char* texturesheet, SDL_Renderer* renderer, float xpos, float ypos, int spriteWidth, int spriteHeight) {
+GameObject::GameObject(std::string gameObjectTag,const char* texturesheet, SDL_Renderer* renderer, float xpos, float ypos, int spriteWidth, int spriteHeight) {
+	this->gameObjectTag = gameObjectTag;
 	this->renderer = renderer;
 	this->objTexture = TextureManager::LoadTexture(texturesheet, this->renderer);
 
@@ -16,6 +17,8 @@ GameObject::GameObject(const char* texturesheet, SDL_Renderer* renderer, float x
 	this->ypos = ypos;
 
 	this->flipX = false;
+
+	//set name tag
 }
 
 void GameObject::Update() {	
@@ -27,7 +30,7 @@ void GameObject::Update() {
 	this->srcRect.y = 0;
 	
 	//destination values
-	this->destRect.x = this->xpos;
+	this->destRect.x = this->xpos+this->cameraXOffset;
 	this->destRect.y = this->ypos;
 	this->destRect.w = this->srcRect.w;//you can scale the gameobject here, width
 	this->destRect.h = this->srcRect.h;//you can scale the gameobject here, height
@@ -46,14 +49,14 @@ bool GameObject::Translate(float x, float y, std::list<SDL_Rect> colliders)
 {
 	if (x != 0) {
 		this->xpos += x;
-		this->destRect.x = this->xpos;
+		this->destRect.x = this->xpos+this->cameraXOffset;
 
 		auto it = colliders.begin();
 		for (; it!=colliders.end(); ++it) {
 
 			if (this->checkCollision(*it)) {
 				this->xpos -= x;
-				this->destRect.x = this->xpos;
+				this->destRect.x = this->xpos+this->cameraXOffset;
 				break;
 			}
 		}
