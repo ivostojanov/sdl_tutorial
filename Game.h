@@ -21,6 +21,9 @@ class Game
 		void Animate();
 		//set the camera over an object - preferably the player
 		void setCamera();
+		float getDeltaTime() {
+			return this->deltaTime / 1000;
+		}
 
 	private:	
 		double cnt;

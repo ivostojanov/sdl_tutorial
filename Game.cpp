@@ -35,7 +35,7 @@ float jumpMaxDistance = 150.0f;
 
 std::list<GameObject*> ground;
 std::list<GameObject*> magicBoxes;
-std::list<GameObject*> brickedWalls;
+std::list<GameObject*> brickedBlocks;
 std::list<GameObject*> decor;
 
 //all the colliders in the level
@@ -48,9 +48,18 @@ SDL_Texture* marioJumpSprite;
 
 //magic box animation
 std::list<SDL_Texture*> magicBoxIdleAnimation;
+SDL_Texture* magicBoxUsedTexture;
 int magicBoxAnimationFrameCounter = 0;
 int moveAnimationFrameCounter = 0;
-//SDL_Texture* blockUsedAnimation;
+std::list<GameObject*> coinGameObjects;//this list is empty
+
+//Coins
+GameObject* coinTemplate; //template coin
+std::list<SDL_Texture*> coinAnimation;
+int coinAnimationCounter = 0;
+
+//Brick block variables
+int brickBlockAnimationCounter = 0;
 
 //Gameobject tags
 const std::string PLAYER_TAG = "player";
@@ -130,6 +139,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		magicBoxIdleAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/blocks/blockq_0.bmp", this->renderer));
 		magicBoxIdleAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/blocks/blockq_1.bmp", this->renderer));
 		magicBoxIdleAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/blocks/blockq_2.bmp", this->renderer));
+		magicBoxUsedTexture = TextureManager::LoadTexture("assets/images_custom/blocks/blockq_used.bmp", this->renderer);
 
 		//the ground
 		for (int i = 0; i < 40; i++) {
@@ -143,14 +153,23 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		//starting obstacles
 		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG,"assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 13, WIN_HEIGHT- 6 * 32, 32, 32));
 
-		brickedWalls.push_back(new GameObject(BREAKABLE_BRICK_TAG,"assets/images_custom/blocks/brickred.bmp", this->renderer, 32*17, WIN_HEIGHT - 6 * 32, 32, 32));
+		brickedBlocks.push_back(new GameObject(BREAKABLE_BRICK_TAG,"assets/images_custom/blocks/brickred.bmp", this->renderer, 32*17, WIN_HEIGHT - 6 * 32, 32, 32));
 		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 18, WIN_HEIGHT - 6 * 32, 32, 32));
-		brickedWalls.push_back(new GameObject(BREAKABLE_BRICK_TAG, "assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 19, WIN_HEIGHT - 6 * 32, 32, 32));
+		brickedBlocks.push_back(new GameObject(BREAKABLE_BRICK_TAG, "assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 19, WIN_HEIGHT - 6 * 32, 32, 32));
 		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 20, WIN_HEIGHT - 6 * 32, 32, 32));
-		brickedWalls.push_back(new GameObject(BREAKABLE_BRICK_TAG, "assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 21, WIN_HEIGHT - 6 * 32, 32, 32));
+		brickedBlocks.push_back(new GameObject(BREAKABLE_BRICK_TAG, "assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 21, WIN_HEIGHT - 6 * 32, 32, 32));
 
 		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 19, WIN_HEIGHT - (6+4) * 32, 32, 32));
 		
+		//------------------------------COINS--------------------------------
+		coinAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/coin/coin_an0.bmp", this->renderer));
+		coinAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/coin/coin_an1.bmp", this->renderer));
+		coinAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/coin/coin_an2.bmp", this->renderer));
+		coinAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/coin/coin_an3.bmp", this->renderer));		
+
+		coinTemplate = new GameObject("coin", "assets/images_custom/coin/coin_an0.bmp", this->renderer, 32*2, WIN_HEIGHT - (32 * 3), 16, 28);
+		/*coinGameObjects.push_back(coinTemplate);*/
+
 		//--------------Scene decor--------------
 		//First bush
 		decor.push_back(new GameObject(DECOR_TAG,"assets/images_custom/decor/bush_left.bmp", this->renderer, 32 * 0, WIN_HEIGHT - (32 * 3), 32, 32));
@@ -213,7 +232,7 @@ void retrieveColliders() {
 		colliders.push_back(magicBox->getCollisionBox());
 	}
 
-	for (GameObject* brickedWall : brickedWalls) {
+	for (GameObject* brickedWall : brickedBlocks) {
 		colliders.push_back(brickedWall->getCollisionBox());
 	}
 
@@ -326,27 +345,58 @@ void Game::Animate() {
 	}
 	
 	for (GameObject* magicBox : magicBoxes) {
-		int animFrame = 0;
-		if (magicBoxAnimationFrameCounter <= 15) {
-			animFrame = 0;
+		if (magicBox->getNumberOfHits() < 1) {
+			int animFrame = 0;
+			if (magicBoxAnimationFrameCounter <= 15) {
+				animFrame = 0;
+			}
+			else if (magicBoxAnimationFrameCounter <= 30) {
+				animFrame = 1;
+			}
+			else if (magicBoxAnimationFrameCounter <= 45) {
+				animFrame = 2;
+			}
+			else {
+				magicBoxAnimationFrameCounter = 0;
+			}
+
+			auto it = magicBoxIdleAnimation.begin();
+			std::advance(it, animFrame);
+			magicBox->SetCurrentTexture(*it);
 		}
-		else if (magicBoxAnimationFrameCounter <= 30) {
+	}
+
+	for (GameObject* coin : coinGameObjects) {		
+
+		int animFrame = 0;
+		if (coinAnimationCounter <= 15) {
+			animFrame = 0;			
+		}
+		else if (coinAnimationCounter <= 30) {
 			animFrame = 1;
 		}
-		else if (magicBoxAnimationFrameCounter <= 45) {
+		else if (coinAnimationCounter <= 45) {
 			animFrame = 2;
 		}
-		else {
-			magicBoxAnimationFrameCounter = 0;
+		else if (coinAnimationCounter <= 60) {
+			animFrame = 3;
 		}
 
-		auto it = magicBoxIdleAnimation.begin();
+		auto it = coinAnimation.begin();
 		std::advance(it, animFrame);
-		magicBox->SetCurrentTexture(*it);		
+		coin->SetCurrentTexture(*it);
+		coin->Translate(0, -1.5f, std::list<SDL_Rect>());		
 	}
-	
+
+	if (coinGameObjects.size()>0 && coinAnimationCounter >= 60) {
+		auto it = coinGameObjects.begin();
+		std::advance(it, 0);
+		coinGameObjects.remove(*it);		
+	}
+		
 	magicBoxAnimationFrameCounter++;
 	moveAnimationFrameCounter++;
+	coinAnimationCounter++;
 	frames++;
 }
 
@@ -368,7 +418,7 @@ void Game::update()
 		magicBox->Update();
 	}
 	
-	for (GameObject* brickedWall : brickedWalls) {
+	for (GameObject* brickedWall : brickedBlocks) {
 		brickedWall->setCameraOffset(cameraOffsetX);
 		brickedWall->Update();
 	}	
@@ -379,23 +429,67 @@ void Game::update()
 		tile->Update();
 	}
 
+	for (GameObject* coin : coinGameObjects) {
+		coin->setCameraOffset(cameraOffsetX);
+		coin->Update();
+	}
+
 	//retrieving colliders after all the position's are correct
 	retrieveColliders();    
 	
-	//-----------------------Emulating movement so we can detect collisions with certain objects---------------------------
+	//-----------------------Emulating movement so we can detect collisions with certain objects in a certain way---------------------------
 	if (playerHasJumped) {
+		SDL_Rect predictedRect = player->getCollisionBox();
+		predictedRect.y = player->getY() - jumpSpeed;
+		for (GameObject* magicBox : magicBoxes) {
+			if (magicBox->checkCollision(predictedRect)) {
+				magicBox->incrementHit();				
+			}
+		}
+
+		for (GameObject* brickBlock : brickedBlocks) {
+			if (brickBlock->checkCollision(predictedRect)) {
+				brickBlock->incrementHit();
+			}
+		}
+	}else if (!grounded) {
+		//logic for killing enemies
 
 	}
-	if (moveLeftFlag) {
 
+	//----------------------Generic Magic boxes---------------------
+	for (GameObject* magicBox : magicBoxes) {
+		if (magicBox->getNumberOfHits() == 1) {
+			//change the texture to used
+			magicBox->SetCurrentTexture(magicBoxUsedTexture);
+			//play the coin animation
+			GameObject* tempCoin = coinTemplate->clone();
+			tempCoin->setX(magicBox->getX()+(magicBox->getCollisionBox().w*0.25f)-(tempCoin->getCollisionBox().w/2));
+			tempCoin->setY(magicBox->getY()-magicBox->getCollisionBox().h/2);
+			coinGameObjects.push_back(tempCoin);
+			coinAnimationCounter = 0;
+			magicBox->incrementHit();
+		}
 	}
-	if (moveRightFlag) {
 
+	//---------------------Brick blocks logic and animation----------------------
+	for (GameObject* brickBlock : brickedBlocks) {
+		if (brickBlock->getNumberOfHits() == 1) {
+			/*std::cout << "You hit a brick wall" << std::endl;*/
+
+			if (brickBlockAnimationCounter <= 10) {
+				brickBlock->Translate(0, -0.5f, std::list<SDL_Rect>());
+			}
+			else if (brickBlockAnimationCounter <= 15) {
+				brickBlock->Translate(0, 1.0f, std::list<SDL_Rect>());
+			}
+			else {
+				brickBlockAnimationCounter = 0;
+				brickBlock->resetHits();
+			}			
+			brickBlockAnimationCounter++;			
+		}
 	}
-	if (!grounded) {
-
-	}
-
 
 	//----------------------------Restrict the player inside the camera----------------------------
 	if (player->getTag() == PLAYER_TAG && player->getX() <= camera.x) {		
@@ -445,21 +539,26 @@ void Game::render()
 		dec->Render();
 	}
 
-	//Rendering happens here
-	player->Render();//rendering the player	
+	//Rendering happens here	
+
+	for (GameObject* coin : coinGameObjects) {
+		coin->Render();
+	}
 
 	for (GameObject* magicBox : magicBoxes) {
 		magicBox->Render();
-	}
+	}	
 
-	for (GameObject* brickedWalls : brickedWalls) {
-		brickedWalls->Render();
+	for (GameObject* brickedBlock : brickedBlocks) {
+		brickedBlock->Render();
 	}
 
 	for (GameObject* tile : ground)
 	{
 		tile->Render();
 	}
+
+	player->Render();//rendering the player	
 
 	SDL_RenderPresent(this->renderer);
 }

@@ -17,8 +17,22 @@ GameObject::GameObject(std::string gameObjectTag,const char* texturesheet, SDL_R
 	this->ypos = ypos;
 
 	this->flipX = false;
+	this->hit = 0;
 
 	//set name tag
+}
+
+GameObject::GameObject(GameObject* go)
+{
+	this->gameObjectTag = go->gameObjectTag;
+	this->renderer = go->renderer;
+	this->objTexture = go->objTexture;
+	this->spriteHeight = go->spriteHeight;
+	this->spriteWidth = go->spriteWidth;
+	this->xpos = go->xpos;
+	this->ypos = go->ypos;
+	this->flipX = go->flipX;
+	this->hit = go->hit;
 }
 
 void GameObject::Update() {	
