@@ -362,6 +362,7 @@ void Game::update()
 	player->setCameraOffset(cameraOffsetX);
 	player->Update(); //updating the player values	
 
+	//------------------Updating positions based on the camera offset-------------------
 	for (GameObject* magicBox : magicBoxes) {
 		magicBox->setCameraOffset(cameraOffsetX);
 		magicBox->Update();
@@ -378,8 +379,30 @@ void Game::update()
 		tile->Update();
 	}
 
+	//retrieving colliders after all the position's are correct
 	retrieveColliders();    
 	
+	//-----------------------Emulating movement so we can detect collisions with certain objects---------------------------
+	if (playerHasJumped) {
+
+	}
+	if (moveLeftFlag) {
+
+	}
+	if (moveRightFlag) {
+
+	}
+	if (!grounded) {
+
+	}
+
+
+	//----------------------------Restrict the player inside the camera----------------------------
+	if (player->getTag() == PLAYER_TAG && player->getX() <= camera.x) {		
+		moveLeftFlag = false;		
+	}
+
+	//-----------------------MOVEMENT CODE HERE---------------------------
 	if (colliders.size() != 0 && !playerHasJumped) {
 		grounded = player->Translate(0, (jumpSpeed), colliders);
 	}
@@ -406,7 +429,7 @@ void Game::update()
 	if (moveRightFlag) {
 		player->Translate(1 * playerSpeed, 0, colliders);
 		playerSpeed += playerVelocity;
-	}	
+	}		
 
 	this->Animate();
 	this->setCamera();
@@ -468,7 +491,11 @@ void Game::setCamera()
 	SDL_Rect playerRect = player->getCollisionBox();
 	//center the camera over mario 
 	//camera.x = (playerRect.x + playerRect.w / 2) - WIN_WIDTH / 2;
-	camera.x = player->getX()-(WIN_WIDTH/2);
+
+	//camera doesn't go backwards only forwards
+	if (camera.x < player->getX() - (WIN_WIDTH / 2)) {
+		camera.x = player->getX() - (WIN_WIDTH / 2);
+	}
 	
 	if (camera.x < 0)
 	{

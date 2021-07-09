@@ -25,6 +25,9 @@ public:
 	void setCameraOffset(float x) {
 		cameraXOffset = x;
 	}
+	std::string getTag() {
+		return this->gameObjectTag;
+	}
 	void incrementHit() {
 		this->hit++;
 	}
