@@ -564,7 +564,7 @@ void Game::update()
 	for (GameObject* goombas : goombasGameObjects) {
 		SDL_Rect predictedGoombasMov = goombas->getCollisionBox();
 		predictedGoombasMov.x += (0.5f * goombas->getDirectionX());
-		if (player->checkCollision(predictedGoombasMov)) {
+		if (player->checkCollision(predictedGoombasMov) && goombas->getNumberOfHits()==0) {
 			gameover = true;			
 		}
 	}
