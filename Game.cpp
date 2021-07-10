@@ -45,6 +45,7 @@ std::list<SDL_Rect> colliders;
 std::list<SDL_Texture*> playerMoveAnimation;
 SDL_Texture* marioIdleSprite;
 SDL_Texture* marioJumpSprite;
+SDL_Texture* marioDeadSprite;
 
 //magic box animation
 std::list<SDL_Texture*> magicBoxIdleAnimation;
@@ -61,15 +62,26 @@ int coinAnimationCounter = 0;
 //Brick block variables
 int brickBlockAnimationCounter = 0;
 
+//goombas
+GameObject* nextGoombasRemoval;
+std::list<GameObject*> goombasGameObjects;
+std::list<SDL_Texture*> goombasMoveAnimation;
+SDL_Texture* goombasDeadSprite;
+int goombasAnimationFrameCounter = 0;
+int goombasDeadCounter = 0;
+
 //Gameobject tags
 const std::string PLAYER_TAG = "player";
 const std::string BREAKABLE_BRICK_TAG = "breakablebrick";
 const std::string MAGIC_BOX_TAG = "magicbox";
 const std::string FLOOR_TAG = "floor";
 const std::string DECOR_TAG = "decor";
+const std::string GOOMBAS_TAG = "goombas";
 
 //frame counter
 int frames = 0;
+bool gameover = false;
+int gameoverAnimationFrameCounter = 0;
 
 //Camera
 SDL_Rect camera = { 0 ,0, WIN_WIDTH, WIN_HEIGHT};
@@ -127,11 +139,13 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		//after the init is succesful continue initializing things here
 
 		//Instantiate the player gameobject	
-		player = new GameObject(PLAYER_TAG, "assets/images_custom/mario/mario.bmp", this->renderer, 32 * 2, WIN_HEIGHT - (32 * 3), 24, 32);
+		player = new GameObject(PLAYER_TAG, "assets/images_custom/mario/mario.bmp", this->renderer, 32 * 11, WIN_HEIGHT - (32 * 3), 24, 32);
 
 		//loading the move right animation
 		marioIdleSprite = TextureManager::LoadTexture("assets/images_custom/mario/mario.bmp", this->renderer);
 		marioJumpSprite = TextureManager::LoadTexture("assets/images_custom/mario/mario_jump.bmp", this->renderer);
+		marioDeadSprite = TextureManager::LoadTexture("assets/images_custom/mario/mario_death.bmp", this->renderer);
+
 		playerMoveAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/mario/mario_move0.bmp", this->renderer));
 		playerMoveAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/mario/mario_move1.bmp", this->renderer));
 		playerMoveAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/mario/mario_move2.bmp", this->renderer));
@@ -168,7 +182,22 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		coinAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/coin/coin_an3.bmp", this->renderer));		
 
 		coinTemplate = new GameObject("coin", "assets/images_custom/coin/coin_an0.bmp", this->renderer, 32*2, WIN_HEIGHT - (32 * 3), 16, 28);
-		/*coinGameObjects.push_back(coinTemplate);*/
+		
+
+		//---------------------------Goombas------------------------------
+		goombasMoveAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/enemies/goombas_0.bmp", this->renderer));
+		goombasMoveAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/enemies/goombas_1.bmp", this->renderer));		
+		goombasDeadSprite = TextureManager::LoadTexture("assets/images_custom/enemies/goombas_ded.bmp", this->renderer);
+
+		//--------------------------Goombas spawning---------------------------
+		GameObject* goombasCage = new GameObject(FLOOR_TAG, "assets/images_custom/blocks/gnd_red_1.bmp", this->renderer, 32*10, WIN_HEIGHT - (32*3), 32, 32);
+		ground.push_back(goombasCage);		
+		goombasCage = new GameObject(FLOOR_TAG, "assets/images_custom/blocks/gnd_red_1.bmp", this->renderer, 32 * 21, WIN_HEIGHT - (32*3), 32, 32);
+		ground.push_back(goombasCage);
+
+		goombasGameObjects.push_back(new GameObject(GOOMBAS_TAG, "assets/images_custom/enemies/goombas_0.bmp", this->renderer, 32 * 19, WIN_HEIGHT - (32 * 7), 32, 32));
+		goombasGameObjects.push_back(new GameObject(GOOMBAS_TAG, "assets/images_custom/enemies/goombas_0.bmp", this->renderer, 32 * 19, WIN_HEIGHT - (32 * 3), 32, 32));
+		goombasGameObjects.push_back(new GameObject(GOOMBAS_TAG, "assets/images_custom/enemies/goombas_0.bmp", this->renderer, 32 * 25, WIN_HEIGHT - (32 * 3), 32, 32));
 
 		//--------------Scene decor--------------
 		//First bush
@@ -243,6 +272,7 @@ void retrieveColliders() {
 
 void Game::handleEvents() {
 	SDL_Event event;
+
 	while (SDL_PollEvent(&event) != 0) {
 		if (event.type == SDL_QUIT) {
 			isRunning = false;
@@ -279,6 +309,13 @@ void Game::handleEvents() {
 					break;
 			}
 		}
+	}
+
+	if (gameover) {
+		moveLeftFlag = false;
+		moveRightFlag = false;
+		playerHasJumped = false;
+		grounded = true;
 	}
 }
 
@@ -335,6 +372,20 @@ void Game::Animate() {
 			}
 			animFrame--;
 		}
+	}
+	else if (gameover) {		
+		player->setScaleH(0.9f);
+		player->setScaleW(0.9f);
+		player->SetCurrentTexture(marioDeadSprite);
+
+		if (gameoverAnimationFrameCounter <= 30) {
+			player->Translate(0, -1.0f, std::list<SDL_Rect>());
+		}
+		else if (gameoverAnimationFrameCounter > 30) {
+			player->Translate(0, 2, std::list<SDL_Rect>());
+		}
+
+		gameoverAnimationFrameCounter++;
 	}
 	else {
 		player->SetCurrentTexture(marioIdleSprite);
@@ -393,7 +444,42 @@ void Game::Animate() {
 		std::advance(it, 0);
 		coinGameObjects.remove(*it);		
 	}
-		
+
+	//------------------Gombas animation----------------------
+	for (GameObject* goombas : goombasGameObjects) {
+		if (goombas->getNumberOfHits() == 0) {
+			int animFrame = 0;
+			if (goombasAnimationFrameCounter <= 15) {
+				animFrame = 0;
+			}
+			else if (goombasAnimationFrameCounter <= 30) {
+				animFrame = 1;
+			}
+			else {
+				goombasAnimationFrameCounter = 0;
+			}
+
+			auto it = goombasMoveAnimation.begin();
+			std::advance(it, animFrame);
+			goombas->SetCurrentTexture(*it);
+		}
+		else if (goombas->getNumberOfHits()==1) {
+			goombas->SetCurrentTexture(goombasDeadSprite);				
+			if (nextGoombasRemoval==NULL) {
+				goombasDeadCounter = 0;
+				nextGoombasRemoval = goombas;//prepare for removal
+				goombas->incrementHit();
+			}
+		}
+	}
+
+	if (goombasDeadCounter >= 30) {
+		goombasGameObjects.remove(nextGoombasRemoval);
+		nextGoombasRemoval = NULL;
+	}
+	
+	goombasDeadCounter++;
+	goombasAnimationFrameCounter++;
 	magicBoxAnimationFrameCounter++;
 	moveAnimationFrameCounter++;
 	coinAnimationCounter++;
@@ -403,16 +489,18 @@ void Game::Animate() {
 void Game::update()
 {
 	float cameraOffsetX = -camera.x;
-	//updating the positions of the decorations
-	for (GameObject* dec : decor) {
-		dec->setCameraOffset(cameraOffsetX);
-		dec->Update();
-	}
+	
 	//update positions here	
 	player->setCameraOffset(cameraOffsetX);
 	player->Update(); //updating the player values	
 
 	//------------------Updating positions based on the camera offset-------------------
+	//updating the positions of the decorations
+	for (GameObject* dec : decor) {
+		dec->setCameraOffset(cameraOffsetX);
+		dec->Update();
+	}
+
 	for (GameObject* magicBox : magicBoxes) {
 		magicBox->setCameraOffset(cameraOffsetX);
 		magicBox->Update();
@@ -434,6 +522,11 @@ void Game::update()
 		coin->Update();
 	}
 
+	for (GameObject* goombas : goombasGameObjects) {
+		goombas->setCameraOffset(cameraOffsetX);
+		goombas->Update();
+	}
+
 	//retrieving colliders after all the position's are correct
 	retrieveColliders();    
 	
@@ -450,11 +543,30 @@ void Game::update()
 		for (GameObject* brickBlock : brickedBlocks) {
 			if (brickBlock->checkCollision(predictedRect)) {
 				brickBlock->incrementHit();
+				brickBlockAnimationCounter = 0;
 			}
 		}
 	}else if (!grounded) {
 		//logic for killing enemies
+		
+		// KILLING GOOMBAS
+		SDL_Rect predictedRect = player->getCollisionBox();
+		predictedRect.y = player->getY() + jumpSpeed;
+		
+		for (GameObject* goombas : goombasGameObjects) {
+			if (goombas->getNumberOfHits()==0 && goombas->checkCollision(predictedRect)) {
+				goombas->incrementHit();
+				goombasDeadCounter = 0;
+			}
+		}
+	}
 
+	for (GameObject* goombas : goombasGameObjects) {
+		SDL_Rect predictedGoombasMov = goombas->getCollisionBox();
+		predictedGoombasMov.x += (0.5f * goombas->getDirectionX());
+		if (player->checkCollision(predictedGoombasMov)) {
+			gameover = true;			
+		}
 	}
 
 	//----------------------Generic Magic boxes---------------------
@@ -477,17 +589,16 @@ void Game::update()
 		if (brickBlock->getNumberOfHits() == 1) {
 			/*std::cout << "You hit a brick wall" << std::endl;*/
 
-			if (brickBlockAnimationCounter <= 10) {
+			if (brickBlockAnimationCounter < 10) {
 				brickBlock->Translate(0, -0.5f, std::list<SDL_Rect>());
 			}
-			else if (brickBlockAnimationCounter <= 15) {
+			else if (brickBlockAnimationCounter < 15) {
 				brickBlock->Translate(0, 1.0f, std::list<SDL_Rect>());
 			}
 			else {
 				brickBlockAnimationCounter = 0;
 				brickBlock->resetHits();
-			}			
-			brickBlockAnimationCounter++;			
+			}								
 		}
 	}
 
@@ -497,10 +608,11 @@ void Game::update()
 	}
 
 	//-----------------------MOVEMENT CODE HERE---------------------------
-	if (colliders.size() != 0 && !playerHasJumped) {
+	if (colliders.size() != 0 && !playerHasJumped && !gameover) {
 		grounded = player->Translate(0, (jumpSpeed), colliders);
 	}
 
+	//player jump
 	if(playerHasJumped){
 		bool jumpFlag = player->Translate(0, (-1)*jumpSpeed, colliders);//constantly going upwards
 		jumpDistanceTraveled += jumpSpeed; //calculate the distance we have jumped
@@ -515,16 +627,37 @@ void Game::update()
 		jumpSpeed = jumpStartSpeed;
 	}
 
+	//moving left
 	if (moveLeftFlag) {
 		player->Translate(-1 * playerSpeed, 0, colliders);
 		playerSpeed += playerVelocity;
 	}
 
+	//moving right
 	if (moveRightFlag) {
 		player->Translate(1 * playerSpeed, 0, colliders);
 		playerSpeed += playerVelocity;
-	}		
+	}
 
+	//--------------------Goombas movement--------------------
+	for (GameObject* goombas : goombasGameObjects) {	
+		if (goombas->getNumberOfHits() == 0) {
+			goombas->Translate(0, (jumpSpeed * 0.65), colliders);//allow gravity to pull the goombas down
+
+			bool hit = goombas->TranslateX(0.5f * goombas->getDirectionX(), colliders);
+			if (hit) {
+				goombas->setDirectionX((-1) * goombas->getDirectionX());
+				if (goombas->getDirectionX() < 0) {
+					goombas->setFlipX(true);
+				}
+				else {
+					goombas->setFlipX(false);
+				}
+			}
+		}
+	}
+
+	brickBlockAnimationCounter++;
 	this->Animate();
 	this->setCamera();
 }
@@ -556,6 +689,10 @@ void Game::render()
 	for (GameObject* tile : ground)
 	{
 		tile->Render();
+	}
+
+	for (GameObject* goombas : goombasGameObjects) {
+		goombas->Render();
 	}
 
 	player->Render();//rendering the player	

@@ -43,6 +43,19 @@ public:
 	int getNumberOfHits() {
 		return this->hit;
 	}
+	void setDirectionX(int dir) {
+		this->directionX = dir;
+	}
+	int getDirectionX() {
+		return this->directionX;
+	}
+	void setScaleH(float scale) {
+		this->scaleH = scale;
+	}
+	void setScaleW(float scale) {
+		this->scaleW = scale;
+	}
+	bool TranslateX(float x, std::list<SDL_Rect> colliders);
 private:
 	float xpos;
 	float ypos;
@@ -50,6 +63,11 @@ private:
 	int spriteHeight;
 	//got hit by the player
 	int hit;
+	
+	float scaleW=1.0f;
+	float scaleH=1.0f;
+
+	int directionX = -1;//-1 is left and 1 is right
 	
 	//sprite options
 	bool flipX;

@@ -46,8 +46,8 @@ void GameObject::Update() {
 	//destination values
 	this->destRect.x = this->xpos+this->cameraXOffset;
 	this->destRect.y = this->ypos;
-	this->destRect.w = this->srcRect.w;//you can scale the gameobject here, width
-	this->destRect.h = this->srcRect.h;//you can scale the gameobject here, height
+	this->destRect.w = this->srcRect.w*scaleW;//you can scale the gameobject here, width
+	this->destRect.h = this->srcRect.h*scaleH;//you can scale the gameobject here, height
 }
 
 void GameObject::Render() {	
@@ -59,7 +59,24 @@ void GameObject::Render() {
 	}
 }
 
-bool GameObject::Translate(float x, float y, std::list<SDL_Rect> colliders)
+bool GameObject::TranslateX(float x, std::list<SDL_Rect> colliders) {
+	this->xpos += x;
+	this->destRect.x = this->xpos + this->cameraXOffset;
+
+	auto it = colliders.begin();
+	for (; it != colliders.end(); ++it) {
+
+		if (this->checkCollision(*it)) {
+			this->xpos -= x;
+			this->destRect.x = this->xpos + this->cameraXOffset;
+			return true;
+			break;
+		}
+	}
+	return false;
+}
+
+bool GameObject::Translate(float x, float y, std::list<SDL_Rect> colliders)//this returns if you have hit anything on the y axis useful for the player movement
 {
 	if (x != 0) {
 		this->xpos += x;
