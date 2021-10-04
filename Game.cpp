@@ -39,6 +39,10 @@ std::list<GameObject*> brickedBlocks;
 std::list<GameObject*> decor;
 std::list<GameObject*> pipes;
 
+//Invisible box
+GameObject* invisibleBox;
+bool invisibleBoxShow=false;
+
 
 //all the colliders in the level
 std::list<SDL_Rect> colliders;
@@ -874,6 +878,9 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_right_bot.bmp", this->renderer, 32 * (cloud_position_x + 2), (32 * 3), 32, 32));
 		decor.push_back(new GameObject(DECOR_TAG, "assets/images_custom/decor/cloud_right_top.bmp", this->renderer, 32 * (cloud_position_x + 2), (32 * 2), 32, 32));
 
+		//Invisible box init
+		invisibleBox = new GameObject("INVISIBLE_BOX", "assets/images_custom/blocks/blockq_used.bmp", this->renderer, 32 * 61, WIN_HEIGHT - (32 * 7), 32, 32);
+
 	}
 	else {
 		this->isRunning = false;
@@ -902,6 +909,9 @@ void retrieveColliders() {
 	}
 
 	colliders.push_back(brickedBlockWithCoins->getCollisionBox());
+
+	if(invisibleBoxShow)
+		colliders.push_back(invisibleBox->getCollisionBox());
 }
 
 void Game::handleEvents() {
@@ -1054,16 +1064,16 @@ void Game::Animate() {
 	for (GameObject* coin : coinGameObjects) {		
 
 		int animFrame = 0;
-		if (coinAnimationCounter <= 15) {
+		if (coin->getAnimationCounter() <= 15) {
 			animFrame = 0;			
 		}
-		else if (coinAnimationCounter <= 30) {
+		else if (coin->getAnimationCounter() <= 30) {
 			animFrame = 1;
 		}
-		else if (coinAnimationCounter <= 45) {
+		else if (coin->getAnimationCounter() <= 45) {
 			animFrame = 2;
 		}
-		else if (coinAnimationCounter <= 60) {
+		else if (coin->getAnimationCounter() <= 60) {
 			animFrame = 3;
 		}
 
@@ -1071,11 +1081,12 @@ void Game::Animate() {
 		std::advance(it, animFrame);
 		coin->SetCurrentTexture(*it);
 		coin->Translate(0, -1.5f, std::list<SDL_Rect>());		
+		coin->addToAnimationCounter(1);
 	}
 
-	if (coinGameObjects.size()>0 && coinAnimationCounter >= 60) {
+	if (coinGameObjects.size()>0 && coinGameObjects.front()->getAnimationCounter() >= 60) {
 		auto it = coinGameObjects.begin();
-		std::advance(it, 0);
+		std::advance(it, 0);		
 		coinGameObjects.remove(*it);		
 	}
 
@@ -1147,6 +1158,9 @@ void Game::update()
 
 	brickedBlockWithCoins->setCameraOffset(cameraOffsetX);
 	brickedBlockWithCoins->Update();
+
+	invisibleBox->setCameraOffset(cameraOffsetX);
+	invisibleBox->Update();
 	
 	for(GameObject* tile : ground)
 	{
@@ -1176,22 +1190,33 @@ void Game::update()
 	if (playerHasJumped) {
 		SDL_Rect predictedRect = player->getCollisionBox();
 		predictedRect.y = player->getY() - jumpSpeed;
+		bool hit = false;
+
 		for (GameObject* magicBox : magicBoxes) {
-			if (magicBox->checkCollision(predictedRect)) {
+			if (!hit && magicBox->checkCollision(predictedRect)) {
 				magicBox->incrementHit();				
+				hit=true;
 			}
 		}
 
 		for (GameObject* brickBlock : brickedBlocks) {
-			if (brickBlock->checkCollision(predictedRect)) {
+			if (!hit && brickBlock->checkCollision(predictedRect)) {
 				brickBlock->incrementHit();
 				brickBlockAnimationCounter = 0;
+				hit = true;
 			}
 		}
-
-		if (brickedBlockWithCoins->checkCollision(predictedRect)) {
+				
+		if (!hit && brickedBlockWithCoins->checkCollision(predictedRect)) {
 			brickedBlockWithCoins->incrementHit();
 			brickedBlockWithCoinsAnimationCounter = 0;
+			hit = true;
+		}
+
+		//show the invisible box once the player has hit it from below
+		if (!hit && !invisibleBoxShow && invisibleBox->checkCollision(predictedRect) && moveLeftFlag==false && moveRightFlag==false) {
+			invisibleBoxShow = true;			
+			hit = true;
 		}
 
 	}else if (!grounded) {
@@ -1229,6 +1254,9 @@ void Game::update()
 			coinGameObjects.push_back(tempCoin);
 			coinAnimationCounter = 0;
 			magicBox->incrementHit();
+
+			if (coinGameObjects.size() > 1)
+				coinAnimationCounter = 61;
 		}
 	}
 
@@ -1377,6 +1405,8 @@ void Game::render()
 	}
 
 	brickedBlockWithCoins->Render();
+	if(invisibleBoxShow)
+		invisibleBox->Render();	
 
 	for (GameObject* tile : ground)
 	{

@@ -56,6 +56,18 @@ public:
 		this->scaleW = scale;
 	}
 	bool TranslateX(float x, std::list<SDL_Rect> colliders);
+	void resetAnimationCounter() {
+		this->animationCounter = 0;
+	}
+	void setAnimationCounter(int frames) {
+		this->animationCounter = frames;
+	}
+	void addToAnimationCounter(int frames) {
+		this->animationCounter += frames;
+	}
+	int getAnimationCounter() {
+		return this->animationCounter;
+	}
 private:
 	float xpos;
 	float ypos;
@@ -77,4 +89,6 @@ private:
 	SDL_Renderer* renderer;	
 	float cameraXOffset=0;
 	std::string gameObjectTag;
+
+	int animationCounter=0;
 };
