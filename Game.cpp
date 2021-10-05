@@ -1067,24 +1067,37 @@ void Game::Animate() {
 		if (coin->getAnimationCounter() <= 15) {
 			animFrame = 0;			
 		}
-		else if (coin->getAnimationCounter() <= 30) {
+		else if (coin->getAnimationCounter() <= 8) {
 			animFrame = 1;
 		}
-		else if (coin->getAnimationCounter() <= 45) {
+		else if (coin->getAnimationCounter() <= 16) {
 			animFrame = 2;
 		}
-		else if (coin->getAnimationCounter() <= 60) {
+		else if (coin->getAnimationCounter() <= 24) {
 			animFrame = 3;
+		}
+		else if (coin->getAnimationCounter() <= 32) {
+			animFrame = 2;
+		}
+		else if (coin->getAnimationCounter() <= 40) {
+			animFrame = 1;
+		}
+		else if (coin->getAnimationCounter() <= 48) {
+			animFrame = 0;
 		}
 
 		auto it = coinAnimation.begin();
 		std::advance(it, animFrame);
 		coin->SetCurrentTexture(*it);
-		coin->Translate(0, -1.5f, std::list<SDL_Rect>());		
+
+		if (coin->getAnimationCounter() <= 32)
+			coin->Translate(0, -2.5f, std::list<SDL_Rect>());
+		else
+			coin->Translate(0, 4.0f, std::list<SDL_Rect>());
 		coin->addToAnimationCounter(1);
 	}
 
-	if (coinGameObjects.size()>0 && coinGameObjects.front()->getAnimationCounter() >= 60) {
+	if (coinGameObjects.size()>0 && coinGameObjects.front()->getAnimationCounter() > 48) {
 		auto it = coinGameObjects.begin();
 		std::advance(it, 0);		
 		coinGameObjects.remove(*it);		
@@ -1108,14 +1121,18 @@ void Game::Animate() {
 			std::advance(it, animFrame);
 			goombas->SetCurrentTexture(*it);
 		}
-		else if (goombas->getNumberOfHits()==1) {
+		else if (goombas->getNumberOfHits() == 1 && !goombas->getFlipY()) {
 			goombas->SetCurrentTexture(goombasDeadSprite);				
 			if (nextGoombasRemoval==NULL) {
 				goombasDeadCounter = 0;
 				nextGoombasRemoval = goombas;//prepare for removal
 				goombas->incrementHit();
 			}
-		}
+		}//turn them over and drop them out of the stage
+		else if (goombas->getNumberOfHits() >= 1 && goombas->getFlipY()) {
+			goombas->setFlipY(true);
+			goombas->Translate(0, (jumpSpeed * 1.0), std::list<SDL_Rect>());//falling out of the stage			
+		}		
 	}
 
 	if (goombasDeadCounter >= 30) {
@@ -1217,7 +1234,7 @@ void Game::update()
 		if (!hit && !invisibleBoxShow && invisibleBox->checkCollision(predictedRect) && moveLeftFlag==false && moveRightFlag==false) {
 			invisibleBoxShow = true;			
 			hit = true;
-		}
+		}		
 
 	}else if (!grounded) {
 		//logic for killing enemies
@@ -1232,6 +1249,29 @@ void Game::update()
 				goombasDeadCounter = 0;
 			}
 		}
+
+		//Killing goombas from a block hit		
+		for (GameObject* brickBlock : brickedBlocks) {
+			for (GameObject* goombas : goombasGameObjects) {
+				if (goombas->checkCollision(brickBlock->getCollisionBox()) && brickBlock->getNumberOfHits() == 1) {
+					goombas->incrementHit();
+					goombas->setFlipY(true);
+					goombasDeadCounter = 0; 
+				}
+			}
+		}
+		
+		////this code is not working correctly
+		//for (GameObject* magicBox : magicBoxes) {
+		//	for (GameObject* goombas : goombasGameObjects) {
+		//		if (goombas->checkCollision(magicBox->getCollisionBox()) && magicBox->getNumberOfHits() >= 1) {
+		//			goombas->incrementHit();
+		//			goombasDeadCounter = 0;
+		//		}
+		//	}
+		//}
+		
+
 	}
 
 	for (GameObject* goombas : goombasGameObjects) {

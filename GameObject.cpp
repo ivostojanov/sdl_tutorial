@@ -51,12 +51,17 @@ void GameObject::Update() {
 }
 
 void GameObject::Render() {	
-	if (!flipX) {
+	if (!flipX && !flipY) {
 		SDL_RenderCopy(this->renderer, this->objTexture, &this->srcRect, &this->destRect);
 	}
-	else {
+	
+	if (flipY) {
+		SDL_RenderCopyEx(this->renderer, this->objTexture, &this->srcRect, &this->destRect, NULL, NULL, SDL_FLIP_VERTICAL);
+	}
+	else if (flipX) {
 		SDL_RenderCopyEx(this->renderer, this->objTexture, &this->srcRect, &this->destRect, NULL, NULL, SDL_FLIP_HORIZONTAL);
 	}
+	
 }
 
 bool GameObject::TranslateX(float x, std::list<SDL_Rect> colliders) {

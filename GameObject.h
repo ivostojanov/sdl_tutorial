@@ -28,6 +28,15 @@ public:
 	void setFlipX(bool flipValue) {
 		this->flipX = flipValue;
 	}	
+	void setFlipY(bool flipValue) {
+		this->flipY = flipValue;
+	}
+	bool getFlipX() {
+		return this->flipX;
+	}
+	bool getFlipY() {
+		return this->flipY;
+	}
 	void setCameraOffset(float x) {
 		cameraXOffset = x;
 	}
@@ -82,7 +91,8 @@ private:
 	int directionX = -1;//-1 is left and 1 is right
 	
 	//sprite options
-	bool flipX;
+	bool flipX=false;
+	bool flipY=false;
 
 	SDL_Texture* objTexture;
 	SDL_Rect srcRect, destRect;
