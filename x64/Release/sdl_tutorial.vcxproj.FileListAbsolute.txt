@@ -1,0 +1,1 @@
+C:\Users\Ivan\Documents\OpenGL Workspace\sdl_tutorial\x64\Release\sdl_tutorial.exe

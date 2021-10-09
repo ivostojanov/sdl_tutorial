@@ -1,0 +1,5 @@
+﻿  Generating code
+  Previous IPDB not found, fall back to full compilation.
+  All 447 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  sdl_tutorial.vcxproj -> C:\Users\Ivan\Documents\OpenGL Workspace\sdl_tutorial\x64\Release\sdl_tutorial.exe
