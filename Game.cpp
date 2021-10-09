@@ -84,15 +84,39 @@ int goombasDeadCounter = 0;
 const std::string PLAYER_TAG = "player";
 const std::string BREAKABLE_BRICK_TAG = "breakablebrick";
 const std::string MAGIC_BOX_TAG = "magicbox";
+const std::string MAGIC_BOX_WITH_SHROOM = "magicbox_with_shroom";
 const std::string FLOOR_TAG = "floor";
 const std::string DECOR_TAG = "decor";
 const std::string GOOMBAS_TAG = "goombas";
 const std::string PIPE_TAG = "pipe";
+const std::string LEVEL_UP_MUSHROOM = "level_up_mushrom";
+const std::string POWER_UP_MUSHROOM = "power_up_mushroom";
 
 //frame counter
 int frames = 0;
 bool gameover = false;
 int gameoverAnimationFrameCounter = 0;
+
+//big mario
+int isMarioBig = 0;
+int marioGettingBigAnimationCounter = 0;
+bool squat = false;
+SDL_Texture* bigMarioIdleSprite;
+std::list<SDL_Texture*> bigMarioMoveAnimation;
+SDL_Texture* bigMarioJumpSprite;
+SDL_Texture* bigMarioSquatSprite;
+int marioGetsSmallerCounter = 0;
+
+//breakable block fragments objects
+GameObject* brickedBlockFragmentTemplate;
+std::list<GameObject*> brickedBlockFragments;
+
+//power up mushroom
+GameObject* powerUpMushroomTemplate;
+std::list<GameObject*> mushrooms;
+
+//level mushroom
+GameObject* levelUpMushroomTemplate;
 
 //Camera
 SDL_Rect camera = { 0 ,0, WIN_WIDTH, WIN_HEIGHT};
@@ -209,7 +233,9 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 
 		//bottom boxes
 		brickedBlocks.push_back(new GameObject(BREAKABLE_BRICK_TAG,"assets/images_custom/blocks/brickred.bmp", this->renderer, 32*17, WIN_HEIGHT - 6 * 32, 32, 32));
-		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 18, WIN_HEIGHT - 6 * 32, 32, 32));
+		
+		magicBoxes.push_back(new GameObject(MAGIC_BOX_WITH_SHROOM, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 18, WIN_HEIGHT - 6 * 32, 32, 32));
+		
 		brickedBlocks.push_back(new GameObject(BREAKABLE_BRICK_TAG, "assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 19, WIN_HEIGHT - 6 * 32, 32, 32));
 		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 20, WIN_HEIGHT - 6 * 32, 32, 32));
 		brickedBlocks.push_back(new GameObject(BREAKABLE_BRICK_TAG, "assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 21, WIN_HEIGHT - 6 * 32, 32, 32));
@@ -219,7 +245,7 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 
 		//----------------------------Second Part(BLOCKS)----------------------------
 		brickedBlocks.push_back(new GameObject(BREAKABLE_BRICK_TAG, "assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 74, WIN_HEIGHT - 6 * 32, 32, 32));
-		magicBoxes.push_back(new GameObject(MAGIC_BOX_TAG, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 75, WIN_HEIGHT - 6 * 32, 32, 32));
+		magicBoxes.push_back(new GameObject(MAGIC_BOX_WITH_SHROOM, "assets/images_custom/blocks/blockq_0.bmp", this->renderer, 32 * 75, WIN_HEIGHT - 6 * 32, 32, 32));
 		brickedBlocks.push_back(new GameObject(BREAKABLE_BRICK_TAG, "assets/images_custom/blocks/brickred.bmp", this->renderer, 32 * 76, WIN_HEIGHT - 6 * 32, 32, 32));
 		//---------Upper 8 bricked blocks---------
 		int bricked_x = 77;		
@@ -881,6 +907,25 @@ void Game::init(const char* title, int xpos, int ypos, int width, int height, bo
 		//Invisible box init
 		invisibleBox = new GameObject("INVISIBLE_BOX", "assets/images_custom/blocks/blockq_used.bmp", this->renderer, 32 * 61, WIN_HEIGHT - (32 * 7), 32, 32);
 
+		//Big Mario textures
+		bigMarioIdleSprite = TextureManager::LoadTexture("assets/images_custom/mario/mario1.bmp", this->renderer);
+		bigMarioJumpSprite = TextureManager::LoadTexture("assets/images_custom/mario/mario1_jump.bmp", this->renderer);
+		bigMarioMoveAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/mario/mario1_move0.bmp", this->renderer));
+		bigMarioMoveAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/mario/mario1_move1.bmp", this->renderer));
+		bigMarioMoveAnimation.push_back(TextureManager::LoadTexture("assets/images_custom/mario/mario1_move2.bmp", this->renderer));
+		bigMarioSquatSprite = TextureManager::LoadTexture("assets/images_custom/mario/mario1_squat.bmp", this->renderer);
+
+		//bricked block parts
+		brickedBlockFragmentTemplate = new GameObject("BRICKED_FRAGMENT", "assets/images_custom/blocks/bricked_fragment.png", this->renderer, 32*5, 32*5, 16, 16);
+		
+		//power up mushroom template
+		powerUpMushroomTemplate = new GameObject(POWER_UP_MUSHROOM, "assets/images_custom/mushrooms/mushroom.bmp", this->renderer, 32*5, 32*5, 32, 32);
+		powerUpMushroomTemplate->setDirectionX(1);		
+
+		//level up mushroom
+		levelUpMushroomTemplate = new GameObject(LEVEL_UP_MUSHROOM, "assets/images_custom/mushrooms/mushroom_1up.bmp", this->renderer, 32 * 4, 32 * 5, 32, 32);
+		levelUpMushroomTemplate->setDirectionX(1);	
+
 	}
 	else {
 		this->isRunning = false;
@@ -920,8 +965,11 @@ void Game::handleEvents() {
 	while (SDL_PollEvent(&event) != 0) {
 		if (event.type == SDL_QUIT) {
 			isRunning = false;
-		}		
-		else if (event.type == SDL_KEYDOWN) {					
+		}
+		else if (isMarioBig == 1) {
+
+		}
+		else if (event.type == SDL_KEYDOWN && !squat) {					
 
 			if (event.key.keysym.sym == SDLK_a) {
 				moveLeftFlag = true;
@@ -934,6 +982,12 @@ void Game::handleEvents() {
 				playerHasJumped = true;
 				grounded = false;
 				jumpDistanceTraveled = 0;
+			}
+			else if (event.key.keysym.sym == SDLK_s && isMarioBig==2) {
+				if(!squat)
+					player->setY(player->getY() + 20);
+				player->setSpriteHeight(44);
+				squat = true;
 			}
 			else if (event.key.keysym.sym == SDLK_ESCAPE) {
 				isRunning = false;
@@ -948,6 +1002,14 @@ void Game::handleEvents() {
 					break;
 				case SDLK_d:
 					moveRightFlag = false;
+					break;
+				case SDLK_s:
+					if (isMarioBig == 2) {
+						if (squat)
+							player->setY(player->getY() - 20);
+						player->setSpriteHeight(64);
+						squat = false;
+					}
 					break;
 				default:
 					break;
@@ -970,6 +1032,56 @@ void Game::setDeltaTime(float deltaTime)
 
 void Game::Animate() {
 
+	//big mario logic
+	if (isMarioBig == 1) {
+		moveLeftFlag = false;
+		moveRightFlag = false;	
+		playerHasJumped = false;
+		if (marioGettingBigAnimationCounter < 10) {
+			player->setSpriteWidth(32);
+			player->setSpriteHeight(64);
+			if(marioGettingBigAnimationCounter==0)
+				player->setY(player->getY() - 32);
+			player->SetCurrentTexture(bigMarioIdleSprite);						
+			marioGettingBigAnimationCounter++;
+		}
+		else if (marioGettingBigAnimationCounter < 20) {
+			player->setSpriteWidth(24);
+			player->setSpriteHeight(32);
+			if (marioGettingBigAnimationCounter == 10)
+				player->setY(player->getY() + 32);
+			player->SetCurrentTexture(marioIdleSprite);
+			marioGettingBigAnimationCounter++;
+		}
+		else if (marioGettingBigAnimationCounter < 30) {
+			player->setSpriteWidth(32);
+			player->setSpriteHeight(64);
+			if (marioGettingBigAnimationCounter == 20)
+				player->setY(player->getY() - 32);
+			player->SetCurrentTexture(bigMarioIdleSprite);
+			marioGettingBigAnimationCounter++;
+		}
+		else if (marioGettingBigAnimationCounter < 40) {
+			player->setSpriteWidth(24);
+			player->setSpriteHeight(32);
+			if (marioGettingBigAnimationCounter == 30)
+				player->setY(player->getY() + 32);			
+			player->SetCurrentTexture(marioIdleSprite);						
+			marioGettingBigAnimationCounter++;
+		}		
+		else {
+			player->setSpriteWidth(32);
+			player->setSpriteHeight(64);
+			player->setY(player->getY() - 32);			
+			isMarioBig++;
+		}
+	}
+	else if (isMarioBig <= 0) {
+		player->setSpriteWidth(24);
+		player->setSpriteHeight(32);
+	}
+
+	
 	if (moveRightFlag) {
 		player->setFlipX(false);		
 		
@@ -987,7 +1099,7 @@ void Game::Animate() {
 			moveAnimationFrameCounter = 0;
 		}	
 
-		auto it = playerMoveAnimation.begin();
+		auto it = isMarioBig <= 0?playerMoveAnimation.begin():bigMarioMoveAnimation.begin();
 		std::advance(it, animFrame);		
 		
 		player->SetCurrentTexture(*it);
@@ -996,25 +1108,36 @@ void Game::Animate() {
 		player->setFlipX(true);
 		int animFrame = 0;
 
-		if (moveAnimationFrameCounter <= 10) {
+		if (moveAnimationFrameCounter <= 5) {
 			animFrame = 0;
 		}
-		else if (moveAnimationFrameCounter <= 20) {
+		else if (moveAnimationFrameCounter <= 10) {
 			animFrame = 1;
 		}
-		else if (moveAnimationFrameCounter <= 30) {
+		else if (moveAnimationFrameCounter <= 15) {
 			animFrame = 2;
 		}
 		else {
 			moveAnimationFrameCounter = 0;
 		}
 
-		for (SDL_Texture* texture : playerMoveAnimation) {
-			if (animFrame == 0) {
-				player->SetCurrentTexture(texture);
-				break;
+		if (isMarioBig <= 0 && !squat) {
+			for (SDL_Texture* texture : playerMoveAnimation) {
+				if (animFrame == 0) {
+					player->SetCurrentTexture(texture);
+					break;
+				}
+				animFrame--;
 			}
-			animFrame--;
+		}
+		else if(isMarioBig==2 && !squat) {
+			for (SDL_Texture* texture : bigMarioMoveAnimation) {
+				if (animFrame == 0) {
+					player->SetCurrentTexture(texture);
+					break;
+				}
+				animFrame--;
+			}
 		}
 	}
 	else if (gameover) {		
@@ -1032,11 +1155,24 @@ void Game::Animate() {
 		gameoverAnimationFrameCounter++;
 	}
 	else {
-		player->SetCurrentTexture(marioIdleSprite);
+		if (squat) {						
+			player->SetCurrentTexture(bigMarioSquatSprite);
+		}
+		else {
+			if (isMarioBig <= 0)
+				player->SetCurrentTexture(marioIdleSprite);
+			else if(isMarioBig>1)
+				player->SetCurrentTexture(bigMarioIdleSprite);
+		}
 	}
 
 	if (playerHasJumped || !grounded) {
-		player->SetCurrentTexture(marioJumpSprite);
+		if (isMarioBig <= 0 && !squat) {//meaning mario is small
+			player->SetCurrentTexture(marioJumpSprite);
+		}
+		else if(isMarioBig == 2 && !squat) {
+			player->SetCurrentTexture(bigMarioJumpSprite);
+		}		
 	}
 	
 	for (GameObject* magicBox : magicBoxes) {
@@ -1195,6 +1331,11 @@ void Game::update()
 		goombas->Update();
 	}
 
+	for (GameObject* powerUpShroom : mushrooms) {
+		powerUpShroom->setCameraOffset(cameraOffsetX);
+		powerUpShroom->Update();
+	}
+
 	for (GameObject* pipe : pipes) {
 		pipe->setCameraOffset(cameraOffsetX);
 		pipe->Update();
@@ -1210,9 +1351,10 @@ void Game::update()
 		bool hit = false;
 
 		for (GameObject* magicBox : magicBoxes) {
-			if (!hit && magicBox->checkCollision(predictedRect)) {
+			if (!hit && magicBox->checkCollision(predictedRect) && magicBox->getNumberOfHits()==0) {
 				magicBox->incrementHit();				
-				hit=true;
+				hit=true;//maybe change this hit
+				break;
 			}
 		}
 
@@ -1220,7 +1362,8 @@ void Game::update()
 			if (!hit && brickBlock->checkCollision(predictedRect)) {
 				brickBlock->incrementHit();
 				brickBlockAnimationCounter = 0;
-				hit = true;
+				hit = true;				
+				break;
 			}
 		}
 				
@@ -1234,6 +1377,11 @@ void Game::update()
 		if (!hit && !invisibleBoxShow && invisibleBox->checkCollision(predictedRect) && moveLeftFlag==false && moveRightFlag==false) {
 			invisibleBoxShow = true;			
 			hit = true;
+			//spawn level up mushroom here			
+			GameObject* tempMushroom = levelUpMushroomTemplate->clone();
+			tempMushroom->setX(invisibleBox->getX());
+			tempMushroom->setY(invisibleBox->getY() - invisibleBox->getCollisionBox().h / 2);
+			mushrooms.push_back(tempMushroom);
 		}		
 
 	}else if (!grounded) {
@@ -1256,7 +1404,7 @@ void Game::update()
 				if (goombas->checkCollision(brickBlock->getCollisionBox()) && brickBlock->getNumberOfHits() == 1) {
 					goombas->incrementHit();
 					goombas->setFlipY(true);
-					goombasDeadCounter = 0; 
+					goombasDeadCounter = 0;
 				}
 			}
 		}
@@ -1274,17 +1422,42 @@ void Game::update()
 
 	}
 
+	//Goombas collision with player
 	for (GameObject* goombas : goombasGameObjects) {
 		SDL_Rect predictedGoombasMov = goombas->getCollisionBox();
 		predictedGoombasMov.x += (0.5f * goombas->getDirectionX());
-		if (player->checkCollision(predictedGoombasMov) && goombas->getNumberOfHits()==0) {
+		if (player->checkCollision(predictedGoombasMov) && goombas->getNumberOfHits()==0 && isMarioBig==0) {
 			gameover = true;			
 		}
+		else if (player->checkCollision(predictedGoombasMov) && goombas->getNumberOfHits() == 0 && isMarioBig > 1) {
+			isMarioBig = -1;
+			marioGetsSmallerCounter = 0;
+			player->setY(player->getY() + 32);
+		}
+	}
+
+	//Power up collision with player
+	bool destroyMushroom = false;
+	for (GameObject* powerUpShroom : mushrooms) {
+		SDL_Rect predictedShroomMov = powerUpShroom->getCollisionBox();
+		predictedShroomMov.x += (0.5f * powerUpShroom->getDirectionX());
+		if (player->checkCollision(predictedShroomMov) && powerUpShroom->getTag() == POWER_UP_MUSHROOM) {
+			isMarioBig = isMarioBig == 0 ? 1 : isMarioBig;
+			marioGettingBigAnimationCounter = 0;
+			destroyMushroom = true;
+		}
+		else if (player->checkCollision(predictedShroomMov) && powerUpShroom->getTag() == LEVEL_UP_MUSHROOM) {
+			destroyMushroom = true;
+		}
+	}
+
+	if (destroyMushroom) {
+		mushrooms.pop_front();
 	}
 
 	//----------------------Generic Magic boxes---------------------START THE COIN ANIMATION-----------------------
 	for (GameObject* magicBox : magicBoxes) {
-		if (magicBox->getNumberOfHits() == 1) {
+		if (magicBox->getNumberOfHits() == 1 && magicBox->getTag()==MAGIC_BOX_TAG) {
 			//change the texture to used
 			magicBox->SetCurrentTexture(magicBoxUsedTexture);
 			//play the coin animation
@@ -1298,11 +1471,24 @@ void Game::update()
 			if (coinGameObjects.size() > 1)
 				coinAnimationCounter = 61;
 		}
+		else if (magicBox->getNumberOfHits() == 1 && magicBox->getTag() == MAGIC_BOX_WITH_SHROOM) {
+			//change the texture to used
+			magicBox->SetCurrentTexture(magicBoxUsedTexture);
+
+			//spawn the mushroom
+			GameObject* tempMushroom = powerUpMushroomTemplate->clone();
+			tempMushroom->setX(magicBox->getX());// + (magicBox->getCollisionBox().w * 0.25f) - (tempMushroom->getCollisionBox().w / 2)
+			tempMushroom->setY(magicBox->getY() - magicBox->getCollisionBox().h / 2);
+			mushrooms.push_back(tempMushroom);
+
+			magicBox->incrementHit();
+		}
 	}
 
-	//---------------------Brick blocks logic and animation----------------------
+	//---------------------Brick blocks logic and animation----------------------	
+	int indexToDelete = 0;
 	for (GameObject* brickBlock : brickedBlocks) {
-		if (brickBlock->getNumberOfHits() == 1) {
+		if (brickBlock->getNumberOfHits() == 1 && isMarioBig==0) {
 			/*std::cout << "You hit a brick wall" << std::endl;*/
 
 			if (brickBlockAnimationCounter < 10) {
@@ -1315,9 +1501,58 @@ void Game::update()
 				brickBlockAnimationCounter = 0;
 				brickBlock->resetHits();
 			}								
+		}		
+		else if (brickBlock->getNumberOfHits() == 1 && isMarioBig > 0) {
+			//spawn the animation of small blocks
+			GameObject* tempFragments = brickedBlockFragmentTemplate->clone();
+			tempFragments->setDirectionX(-1);
+			tempFragments->setX(brickBlock->getX() + (brickBlock->getCollisionBox().w * 0.25f) - (tempFragments->getCollisionBox().w / 2));
+			tempFragments->setY(brickBlock->getY() - brickBlock->getCollisionBox().h / 2);
+			brickedBlockFragments.push_back(tempFragments);
+
+			tempFragments = brickedBlockFragmentTemplate->clone();
+			tempFragments->setDirectionX(-2);
+			tempFragments->setX(brickBlock->getX() + (brickBlock->getCollisionBox().w * 0.25f) - (tempFragments->getCollisionBox().w / 2));
+			tempFragments->setY(brickBlock->getY() - brickBlock->getCollisionBox().h * 1);
+			brickedBlockFragments.push_back(tempFragments);
+
+			tempFragments = brickedBlockFragmentTemplate->clone();
+			tempFragments->setDirectionX(1);
+			tempFragments->setX(brickBlock->getX() + (brickBlock->getCollisionBox().w * 0.25f) - (tempFragments->getCollisionBox().w / 2));
+			tempFragments->setY(brickBlock->getY() - brickBlock->getCollisionBox().h / 2);
+			brickedBlockFragments.push_back(tempFragments);
+
+			tempFragments = brickedBlockFragmentTemplate->clone();
+			tempFragments->setDirectionX(2);
+			tempFragments->setX(brickBlock->getX() + (brickBlock->getCollisionBox().w * 0.25f) - (tempFragments->getCollisionBox().w / 2));
+			tempFragments->setY(brickBlock->getY() - brickBlock->getCollisionBox().h * 1);
+			brickedBlockFragments.push_back(tempFragments);
+
+			// doesn't seem to work
+			////kill goombas in contact with
+			//for (GameObject* goombas : goombasGameObjects) {
+			//	SDL_Rect box_rect = brickBlock->getCollisionBox();
+			//	box_rect.h = 64;
+			//	box_rect.y += 32;
+			//	if (goombas->checkCollision(box_rect)) {
+			//		goombas->incrementHit();
+			//		goombas->setFlipY(true);
+			//		goombasDeadCounter = 0;
+			//	}
+			//}
+
+			break;
 		}
+		indexToDelete++;
 	}
 
+	//destroying blocks	
+	if (indexToDelete < brickedBlocks.size()) {
+		auto it = brickedBlocks.begin();
+		std::advance(it, indexToDelete);
+		brickedBlocks.remove(*it);
+	}
+	
 	//----------------------Bricked Box wtih coins---------------------
 	if (brickedBlockWithCoins->getNumberOfHits() == 1) {
 		//play bricked animation
@@ -1359,13 +1594,13 @@ void Game::update()
 	}
 
 	//-----------------------MOVEMENT CODE HERE---------------------------
-	if (colliders.size() != 0 && !playerHasJumped && !gameover) {
+	if (colliders.size() != 0 && !playerHasJumped && !gameover && isMarioBig!=1) {
 		grounded = player->Translate(0, (jumpSpeed), colliders);
 	}
 
 	//player jump
-	if(playerHasJumped){
-		bool jumpFlag = player->Translate(0, (-1)*jumpSpeed, colliders);//constantly going upwards
+	if(playerHasJumped && isMarioBig!=1){
+		bool jumpFlag = player->Translate(0, (-1)*jumpSpeed, colliders);//constantly going upwards (Gravity)
 		jumpDistanceTraveled += jumpSpeed; //calculate the distance we have jumped
 		jumpSpeed -= jumpVelocity;//increasing our jump speed
 		playerHasJumped = !jumpFlag;//if we have hit an object stop the jump or if we reached our jumping limit
@@ -1415,6 +1650,54 @@ void Game::update()
 		}
 	}
 
+	//--------------------Mushroom movement--------------------
+	for (GameObject* powerUpShroom : mushrooms) {
+
+		if (powerUpShroom->getAnimationCounter() < 60) {
+			powerUpShroom->Translate(0, (jumpSpeed * -0.075), std::list<SDL_Rect>());
+			powerUpShroom->addToAnimationCounter(1);
+		}
+		else {
+			powerUpShroom->Translate(0, (jumpSpeed * 0.65), colliders);//allow gravity to pull the mushrooms down
+
+			bool hit = powerUpShroom->TranslateX(1.5f * powerUpShroom->getDirectionX(), colliders);
+			//hit = hit == false ? goombas->TranslateX(0.5f * goombas->getDirectionX(), custom_colliders) : false;
+			if (hit) {
+				powerUpShroom->setDirectionX((-1) * powerUpShroom->getDirectionX());
+
+				//jump the shroom
+				powerUpShroom->Translate(12.0f * powerUpShroom->getDirectionX(), -12.0f, std::list<SDL_Rect>());
+
+				if (powerUpShroom->getDirectionX() < 0) {
+					powerUpShroom->setFlipX(true);
+				}
+				else {
+					powerUpShroom->setFlipX(false);
+				}
+			}
+		}				
+	}
+
+	//temporary BRICKED BLOCK FRAGMENT
+	for (GameObject* brickedFragments : brickedBlockFragments) {
+		brickedFragments->setCameraOffset(cameraOffsetX);		
+
+		if (brickedFragments->getAnimationCounter() < 15)
+			brickedFragments->Translate(0.5 * brickedFragments->getDirectionX(), -3.0, std::list<SDL_Rect>());
+		else if (brickedFragments->getAnimationCounter() >= 15) {
+			brickedFragments->Translate(0.5 * brickedFragments->getDirectionX(), brickedFragments->getAnimationCounter()/8, std::list<SDL_Rect>());
+		}
+
+		brickedFragments->addToAnimationCounter(1);
+		brickedFragments->Update();
+	}
+
+	if (brickedBlockFragments.size() > 0 && brickedBlockFragments.front()->getAnimationCounter()>60*10) {
+		auto it = brickedBlockFragments.begin();
+		std::advance(it, 0);		
+		brickedBlockFragments.remove(*it);
+	}
+
 	brickBlockAnimationCounter++;
 	this->Animate();
 	this->setCamera();
@@ -1430,7 +1713,11 @@ void Game::render()
 		dec->Render();
 	}
 
-	//Rendering happens here	
+	//Rendering happens here
+
+	for (GameObject* powerUpShroom : mushrooms) {
+		powerUpShroom->Render();
+	}
 
 	for (GameObject* coin : coinGameObjects) {
 		coin->Render();
@@ -1459,9 +1746,43 @@ void Game::render()
 
 	for (GameObject* pipe : pipes) {
 		pipe->Render();
+	}	
+
+	if (isMarioBig == -1) {
+		if (marioGetsSmallerCounter <= 5) {
+			player->Render();
+		}
+		else if (marioGetsSmallerCounter <= 10) {
+			
+		}
+		else if (marioGetsSmallerCounter <= 15) {
+			player->Render();
+		}
+		else if (marioGetsSmallerCounter <= 20) {
+			
+		}
+		else if (marioGetsSmallerCounter <= 25) {
+			player->Render();
+		}
+		else if (marioGetsSmallerCounter <= 30) {
+			
+		}
+		else if (marioGetsSmallerCounter <= 60) {
+			player->Render();
+		}
+		else if (marioGetsSmallerCounter > 60) {
+			player->Render();
+			isMarioBig = 0;
+		}
+		marioGetsSmallerCounter++;
+	}
+	else {
+		player->Render();//rendering the player	
 	}
 
-	player->Render();//rendering the player	
+	for (GameObject* brickedFragments : brickedBlockFragments) {
+		brickedFragments->Render();
+	}
 
 	SDL_RenderPresent(this->renderer);
 }

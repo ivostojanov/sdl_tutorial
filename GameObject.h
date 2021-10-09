@@ -77,6 +77,12 @@ public:
 	int getAnimationCounter() {
 		return this->animationCounter;
 	}
+	void setSpriteWidth(int value) {
+		this->spriteWidth = value;
+	}
+	void setSpriteHeight(int value) {
+		this->spriteHeight = value;
+	}	
 private:
 	float xpos;
 	float ypos;
